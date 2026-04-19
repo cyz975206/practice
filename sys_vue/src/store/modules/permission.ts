@@ -79,8 +79,10 @@ function menuToRoute(menu: MenuNode): RouteRecordRaw | null {
 // setup
 export const usePermissionStore = defineStore("permission", () => {
   const routes = ref<RouteRecordRaw[]>([]);
+  const asyncRoutes = ref<RouteRecordRaw[]>([]);
 
   function setRoutes(newRoutes: RouteRecordRaw[]) {
+    asyncRoutes.value = newRoutes;
     routes.value = constantRoutes.concat(newRoutes);
   }
 
@@ -89,11 +91,11 @@ export const usePermissionStore = defineStore("permission", () => {
     const response = await getMenuTree();
     if (response.code === 200 && response.data) {
       const menuTree = response.data as MenuNode[];
-      const asyncRoutes = menuTree
+      const dynamicRoutes = menuTree
         .map((menu) => menuToRoute(menu))
         .filter(Boolean) as RouteRecordRaw[];
-      setRoutes(asyncRoutes);
-      return { routes: asyncRoutes, menuTree };
+      setRoutes(dynamicRoutes);
+      return { routes: dynamicRoutes, menuTree };
     }
     return { routes: [] as RouteRecordRaw[], menuTree: [] as MenuNode[] };
   }
@@ -108,7 +110,7 @@ export const usePermissionStore = defineStore("permission", () => {
     });
   }
 
-  return { routes, setRoutes, generateRoutes, getMixLeftMenu, mixLeftMenu };
+  return { routes, asyncRoutes, setRoutes, generateRoutes, getMixLeftMenu, mixLeftMenu };
 });
 
 // 非setup
