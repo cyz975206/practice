@@ -56,11 +56,13 @@ service.interceptors.response.use(
   },
   (error: any) => {
     if (error.response) {
-      if (error.response.status === 401 && !isRefreshing) {
-        isRefreshing = true;
-        localStorage.removeItem("access_token");
-        ElMessage.warning("登录已过期，请重新登录");
-        window.location.href = import.meta.env.BASE_URL + "#/login";
+      if (error.response.status === 401) {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          localStorage.removeItem("access_token");
+          ElMessage.warning("登录已过期，请重新登录");
+          window.location.href = import.meta.env.BASE_URL + "#/login";
+        }
       } else {
         ElMessage.error(showErrorStatus(error.response.status));
       }
