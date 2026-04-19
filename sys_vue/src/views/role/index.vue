@@ -200,7 +200,7 @@
     >
       <div v-loading="menuDialogLoading" class="rm-menu-assign">
         <p class="rm-menu-assign__hint">
-          勾选菜单节点分配给该角色，父节点将自动半选
+          勾选菜单节点分配给该角色，父子节点可独立勾选
         </p>
         <el-tree
           ref="menuTreeRef"
@@ -208,6 +208,7 @@
           :props="{ children: 'children', label: 'menuName' }"
           node-key="id"
           show-checkbox
+          check-strictly
           default-expand-all
           :default-checked-keys="checkedMenuIds"
         >
