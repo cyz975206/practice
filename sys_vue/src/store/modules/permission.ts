@@ -51,6 +51,14 @@ function menuToRoute(menu: MenuNode): RouteRecordRaw | null {
       route.redirect = children[0].path;
       // 目录类型或有子菜单时使用 Layout
       route.component = Layout;
+    } else if (menu.component) {
+      // 子菜单全是按钮被过滤后，菜单本身有组件则作为叶子路由
+      const componentPath = `../../views/${menu.component}.vue`;
+      route.component = viewModules[componentPath];
+      if (!route.component) {
+        console.warn(`组件未找到: ${componentPath}`);
+        return null;
+      }
     } else {
       return null;
     }
