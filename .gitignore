@@ -1,0 +1,6 @@
+/.idea
+/sys/target
+/sys_vue/node_modules
+/sys_vue/dist
+/sys_vue/pnpm-lock.yaml
+/sys_vue/.vite

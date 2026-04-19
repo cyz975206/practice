@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn dependency:copy-dependencies -q)",
+      "Bash(mvn test-compile:*)",
+      "Bash(java -cp \"target/classes:target/test-classes:target/dependency/*\" com.cyz.Sm4EncryptTest)",
+      "Bash(java:*)",
+      "Bash(mvn compile:*)",
+      "WebSearch",
+      "Bash(npx skills:*)"
+    ]
+  }
+}

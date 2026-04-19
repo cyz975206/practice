@@ -1,0 +1,102 @@
+@use "./transition";
+@use "./sidebar";
+@use "./reset";
+@use "./elementui";
+
+.app-container {
+  padding: 20px;
+}
+//自定义placeholder样式
+.input-placeholder-custom{
+  color: #a8abb2;
+  font-size: 14px;
+}
+  // layout中固定padding 10px 后的页面显示
+.layout-container {
+  height: calc(100vh - 50px - 34px - 20px);
+}
+
+.search-container {
+  padding: 18px 0 0 10px;
+  margin-bottom: 10px;
+  background-color: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 4px;
+  box-shadow: var(--el-box-shadow-light);
+}
+.page {
+  background-color: #fff;
+}
+
+.table-container > .el-card__header {
+  padding: calc(var(--el-card-padding) - 8px) var(--el-card-padding);
+}
+
+.chat-container {
+  border-color: #e2e8f0;
+  > .el-card__body {
+    padding: 0;
+  }
+}
+
+.knowledge-dialog {
+  .el-dialog__body {
+    padding-right: 0;
+  }
+}
+
+.app-card {
+  height: 90px;
+  border: 1px solid rgb(223, 226, 234) !important;
+  > .el-card__body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+  }
+}
+
+.link-type,
+.link-type:focus {
+  color: #337ab7;
+  cursor: pointer;
+
+  &:hover {
+    color: rgb(32 160 255);
+  }
+}
+
+// 分页器位置
+.page-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Webkit 浏览器的滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px; /* 滚动条宽度 */
+  height: 8px; /* 滚动条高度 */
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent; /* 滚动条轨道颜色 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e1e1e9; /* 滚动条滑块颜色 */
+  border-radius: 6px; /* 滚动条滑块圆角 */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d9d9e3; /* 滚动条滑块悬停颜色 */
+}
+
+/* Firefox 浏览器的滚动条样式 */
+* {
+  scrollbar-width: thin; /* 可以是 'auto', 'thin', 'none' */
+  scrollbar-color: auto transparent; /* 滚动条滑块颜色 和 轨道颜色 */
+}
+
+.el-dialog__headerbtn{
+  top: 18px !important;
+}

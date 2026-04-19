@@ -1,0 +1,299 @@
+import { defineStore } from "pinia";
+import { useRoute } from "vue-router";
+import { useUserStoreHook } from "@/store/modules/user";
+
+export const useTagsViewStore = defineStore("tagsView", () => {
+  const visitedViews = useSessionStorage("sys_visited_views", [] as any);
+  const cachedViews = ref<string[]>([]);
+  const userTagsView = useSessionStorage("sys_user_tags_view", {} as any);
+  const activeMenu = useSessionStorage("activeMenu", "" as any);
+  const userTagsRoute = useSessionStorage("sys_user_tags_route", {} as any);
+
+  // console.log("first visitedViews", visitedViews, "cachedViews", cachedViews);
+
+  /**
+   * 添加已访问视图到已访问视图列表中
+   */
+  function addVisitedView(view: TagView) {
+    // console.log("addVisitedView", visitedViews, view);
+    try {
+      const userStore = useUserStoreHook();
+      const userId = userStore.user?.id;
+
+      /** 初始化用户对应的标签 - 没有则创建 */
+      !userTagsView.value[userId] && (userTagsView.value[userId] = []);
+      //先获取本地存在的标签
+      if (userId && userTagsView.value[userId]) {
+        visitedViews.value = userTagsView.value[userId];
+      }
+    } catch (e) {}
+    // 恢复时去重一次，防止存储中已有重复
+    if (Array.isArray(visitedViews?.value)) {
+      const uniqueMap = new Map<string, any>();
+      visitedViews.value.forEach((t: any) => {
+        const key = t?.fullPath || t?.path;
+        if (key && !uniqueMap.has(key)) uniqueMap.set(key, t);
+      });
+      visitedViews.value = Array.from(uniqueMap.values());
+    }
+
+    // 如果已经存在于已访问的视图列表中，则不再添加
+    if (visitedViews?.value?.some((v) => v?.fullPath == view?.fullPath)) {
+      return;
+    }
+    // 如果视图是固定的（affix），则在已访问的视图列表的开头添加
+    if (view.affix) {
+      visitedViews?.value?.unshift(view);
+    } else {
+      // 如果视图不是固定的，则在已访问的视图列表的末尾添加
+      visitedViews?.value?.push(view);
+    }
+    // 再次去重以保险（按 fullPath 优先，没有则按 path）
+    const uniqueMap = new Map<string, any>();
+    visitedViews.value.forEach((t: any) => {
+      const key = t?.fullPath || t?.path;
+      if (key && !uniqueMap.has(key)) uniqueMap.set(key, t);
+    });
+    visitedViews.value = Array.from(uniqueMap.values());
+
+  }
+
+  function addUserTagsView(view) {
+    if (view == "all") {
+      //关闭所有
+      // 从 sessionStorage 中获取用户信息
+      const userStore = useUserStoreHook();
+      const userId = userStore.user?.id;
+      const route = useRoute();
+      if (userId) {
+        // 存储每个用户对应的标签
+        userTagsView.value[userId] = [];
+        //存储每个用户对应的路由
+        userTagsRoute.value[userId] = "/";
+      }
+    } else {
+      // 从 sessionStorage 中获取用户信息
+      const userStore = useUserStoreHook();
+      const userId = userStore.user?.id;
+      const route = useRoute();
+      if (userId) {
+        // 存储每个用户对应的标签
+        const tags = JSON.parse(JSON.stringify(visitedViews.value));
+        // 保存前去重
+        const uniqueMap = new Map<string, any>();
+        tags.forEach((t: any) => {
+          const key = t?.fullPath || t?.path;
+          if (key && !uniqueMap.has(key)) uniqueMap.set(key, t);
+        });
+        userTagsView.value[userId] = Array.from(uniqueMap.values());
+        //存储对应的标签
+        //存储每个用户对应的路由
+        const path = view.path || route?.path;
+        userTagsRoute.value[userId] = path;
+      }
+    }
+  }
+
+  /**
+   * 添加缓存视图到缓存视图列表中
+   */
+  function addCachedView(view: TagView) {
+    // console.log("addCachedView", visitedViews, view);
+    const viewName = view.name;
+    // 如果缓存视图名称已经存在于缓存视图列表中，则不再添加
+    if (cachedViews.value.includes(viewName)) {
+      return;
+    }
+
+    // 如果视图需要缓存（keepAlive），则将其路由名称添加到缓存视图列表中
+    if (view.keepAlive) {
+      cachedViews.value.push(viewName);
+    }
+  }
+
+  /**
+   * 从已访问视图列表中删除指定的视图
+   */
+  function delVisitedView(view: TagView) {
+    return new Promise((resolve) => {
+      for (const [i, v] of visitedViews.value.entries()) {
+        // 找到与指定视图路径匹配的视图，在已访问视图列表中删除该视图
+        if (v.path === view.path) {
+          visitedViews.value.splice(i, 1);
+          break;
+        }
+      }
+      resolve([...visitedViews.value]);
+    });
+  }
+
+  function delCachedView(view: TagView) {
+    const viewName = view.name;
+    return new Promise((resolve) => {
+      const index = cachedViews.value.indexOf(viewName);
+      index > -1 && cachedViews.value.splice(index, 1);
+      resolve([...cachedViews.value]);
+    });
+  }
+
+  function delOtherVisitedViews(view: TagView) {
+    return new Promise((resolve) => {
+      visitedViews.value = visitedViews.value.filter((v) => {
+        return v?.affix || v.path === view.path;
+      });
+      resolve([...visitedViews.value]);
+    });
+  }
+
+  function delOtherCachedViews(view: TagView) {
+    const viewName = view.name as string;
+    return new Promise((resolve) => {
+      const index = cachedViews.value.indexOf(viewName);
+      if (index > -1) {
+        cachedViews.value = cachedViews.value.slice(index, index + 1);
+      } else {
+        // if index = -1, there is no cached tags
+        cachedViews.value = [];
+      }
+      resolve([...cachedViews.value]);
+    });
+  }
+
+  function updateVisitedView(view: TagView) {
+    // console.log("updateVisitedView", visitedViews, view);
+    for (let v of visitedViews.value) {
+      if (v.path === view.path) {
+        v = Object.assign(v, view);
+        break;
+      }
+    }
+  }
+
+  function addView(view: TagView) {
+    // console.log("addView", visitedViews, view);
+    addVisitedView(view);
+    addCachedView(view);
+    addUserTagsView(view); //添加每个用户对应的标签 并存储到本地
+  }
+
+  function delView(view: TagView) {
+    return new Promise((resolve) => {
+      delVisitedView(view);
+      delCachedView(view);
+      resolve({
+        visitedViews: [...visitedViews.value],
+        cachedViews: [...cachedViews.value],
+      });
+      addUserTagsView(view); //添加每个用户对应的标签 并存储到本地
+    });
+  }
+
+  function delOtherViews(view: TagView) {
+    return new Promise((resolve) => {
+      delOtherVisitedViews(view);
+      delOtherCachedViews(view);
+      resolve({
+        visitedViews: [...visitedViews.value],
+        cachedViews: [...cachedViews.value],
+      });
+      addUserTagsView(view); //添加每个用户对应的标签 并存储到本地
+    });
+  }
+
+  function delLeftViews(view: TagView) {
+    return new Promise((resolve) => {
+      const currIndex = visitedViews.value.findIndex(
+        (v) => v.path === view.path
+      );
+      if (currIndex === -1) {
+        return;
+      }
+      visitedViews.value = visitedViews.value.filter((item, index) => {
+        if (index >= currIndex || item?.affix) {
+          return true;
+        }
+
+        const cacheIndex = cachedViews.value.indexOf(item.name);
+        if (cacheIndex > -1) {
+          cachedViews.value.splice(cacheIndex, 1);
+        }
+        return false;
+      });
+      resolve({
+        visitedViews: [...visitedViews.value],
+      });
+      addUserTagsView(view); //添加每个用户对应的标签 并存储到本地
+    });
+  }
+
+  function delRightViews(view: TagView) {
+    return new Promise((resolve) => {
+      const currIndex = visitedViews.value.findIndex(
+        (v) => v.path === view.path
+      );
+      if (currIndex === -1) {
+        return;
+      }
+      visitedViews.value = visitedViews.value.filter((item, index) => {
+        if (index <= currIndex || item?.affix) {
+          return true;
+        }
+      });
+      resolve({
+        visitedViews: [...visitedViews.value],
+      });
+      addUserTagsView(view); //添加每个用户对应的标签 并存储到本地
+    });
+  }
+
+  function delAllViews() {
+    return new Promise((resolve) => {
+      const affixTags = visitedViews.value.filter((tag) => tag?.affix);
+      visitedViews.value = affixTags;
+      cachedViews.value = [];
+      resolve({
+        visitedViews: [...visitedViews.value],
+        cachedViews: [...cachedViews.value],
+      });
+      addUserTagsView("all"); //添加每个用户对应的标签 并存储到本地
+    });
+  }
+
+  function delAllVisitedViews() {
+    return new Promise((resolve) => {
+      const affixTags = visitedViews.value.filter((tag) => tag?.affix);
+      visitedViews.value = affixTags;
+      resolve([...visitedViews.value]);
+    });
+  }
+
+  function delAllCachedViews() {
+    return new Promise((resolve) => {
+      cachedViews.value = [];
+      resolve([...cachedViews.value]);
+    });
+  }
+
+  return {
+    visitedViews,
+    cachedViews,
+    addVisitedView,
+    addCachedView,
+    delVisitedView,
+    delCachedView,
+    delOtherVisitedViews,
+    delOtherCachedViews,
+    updateVisitedView,
+    addView,
+    delView,
+    delOtherViews,
+    delLeftViews,
+    delRightViews,
+    delAllViews,
+    userTagsRoute,
+    userTagsView,
+    delAllVisitedViews,
+    delAllCachedViews,
+    activeMenu
+  };
+});

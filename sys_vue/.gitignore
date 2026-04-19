@@ -1,0 +1,23 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+*.zip
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.local
+
+package-lock.json
+pnpm-lock.yaml
+stats.html
+.svn
+/pnpm-workspace.yaml
+/yarn.lock
+/.vite/deps/_metadata.json
+/.vite/deps/package.json

@@ -1,0 +1,45 @@
+sm4:
+  key: fixcom
+
+jwt:
+  secret: sys-management-secret-key-must-be-at-least-256-bits-long-for-hs256
+
+task:
+  service_name: sys-management
+
+spring:
+  datasource:
+    url: 5qJZy0Z28Ry/deKleD8lhIsMmyL+gEMaxZM7/ysCTG241agvog6pG6KE6gg/f6+dk9suDO5npg28R0PDT6M4WNZaNS2PK64+f+k3unJpWhtwkYojiduV8cV4HbQSrd/4bwtbfpp7r7wRVqAyVsA42qTYhUN+cwOwHk7b56ac5QTt/8lWfg/cSHnFCPWt2vTKaWUwNpOsrGsjdAjr+sd0xQ==
+    username: OqPtiW2B51nrJ46DUye1dA==
+    password: iGJLSeNP8fevwP0Skp8NbQ==
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: MdB93a9WOBbBwIxUuWs6qw==
+      port: 6379
+      password:
+      database: 0
+      timeout: 5000ms
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        physical-naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    open-in-view: false
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+server:
+  port: 8080

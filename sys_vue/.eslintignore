@@ -1,0 +1,16 @@
+dist
+node_modules
+public
+.husky
+.vscode
+.idea
+.svn
+*.sh
+*.md
+*.vue
+
+src/assets
+
+.eslintrc.cjs
+.prettierrc.cjs
+.stylelintrc.cjs

@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile:*)",
+      "Bash(find src/test -name *.java)",
+      "Bash(find . -name *.sql -o -name *migration* -o -name *schema* -o -name *db* -o -name *database*)",
+      "Bash(npx skills:*)",
+      "Bash(grep -n \"@.*Mapping\\\\|@RestController\\\\|@Controller\" src/main/java/com/cyz/controller/*)",
+      "Bash(done)",
+      "Bash(grep -o '@.*Mapping\\(\"\"\"\"/[^\"\"\"\"]*\"\"\"\"\\)' src/main/java/com/cyz/controller/*.java)",
+      "Bash(mvn test:*)",
+      "Bash(mvn test-compile:*)",
+      "Bash(cd:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(sed -i 's/import jakarta.validation.Validator;/import org.springframework.validation.Validator;/' \"$f\")",
+      "Bash(sed -i 's/Validator validator = Validation.buildDefaultValidatorFactory\\(\\).getValidator\\(\\);/Validator validator = new org.springframework.validation.beanvalidation.SpringValidatorAdapter\\(Validation.buildDefaultValidatorFactory\\(\\).getValidator\\(\\)\\);/' \"$f\")",
+      "Bash(mvn dependency:tree -Dscope=test)",
+      "Bash(if grep:*)",
+      "Bash(then continue:*)",
+      "Bash(fi)",
+      "Bash(then)",
+      "Bash(sed -i 's/import org.springframework.data.domain.Page;/import org.springframework.data.domain.Page;\\\\nimport org.springframework.data.domain.PageRequest;/' \"$f\")",
+      "Bash(./mvnw test:*)",
+      "Bash(ls C:/Work/GitHub/Practice/sys/mvnw* C:/Work/GitHub/Practice/sys/gradlew*)",
+      "Bash(ls C:/Work/GitHub/Practice/sys/pom.xml C:/Work/GitHub/Practice/sys/build.gradle*)",
+      "Bash(ls:*)",
+      "Bash(find ./src -type f -name *Test*)",
+      "Bash(find ./src -type f -name *test* -iname *test*)",
+      "Bash(find ./src/main/resources -name *.yml -o -name *.yaml -o -name *.properties)",
+      "Bash(xargs grep:*)"
+    ]
+  }
+}
