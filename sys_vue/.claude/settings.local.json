@@ -49,7 +49,10 @@
       "Bash(xargs grep:*)",
       "Bash(grep -E '\\\\.\\(ts|js|vue\\)$')",
       "Bash(mkdir -p C:/Work/GitHub/Practice/sys_vue/src/api/task)",
-      "Bash(mkdir -p C:/Work/GitHub/Practice/sys_vue/src/views/task)"
+      "Bash(mkdir -p C:/Work/GitHub/Practice/sys_vue/src/views/task)",
+      "Bash(git -C /c/Work/GitHub/Practice/sys_vue add src/views/org/index.vue)",
+      "Bash(git -C:*)",
+      "Bash(git -C /c/Work/GitHub/Practice/sys_vue push)"
     ]
   }
 }
