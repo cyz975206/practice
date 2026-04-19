@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { loginApi, logoutApi, getUserInfoApi } from "@/api/auth";
 import { store } from "@/store";
+import { usePermissionStoreHook } from "./permission";
+import { useMenuStoreHook } from "./menu";
 import type { LoginData, UserInfo } from "@/api/auth/types";
 import type { R } from "@/api/types";
 
@@ -26,6 +28,25 @@ export const useUserStore = defineStore("user", () => {
     const response = (await loginApi(loginData)) as R<LoginResult>;
     const { token } = response.data;
     localStorage.setItem("access_token", token);
+    // 清除旧权限，获取新权限和菜单
+    user.roles = [];
+    user.perms = [];
+    await getUserInfo();
+    await generateRoutes();
+  }
+
+  /** 生成动态路由和菜单 */
+  async function generateRoutes() {
+    const permissionStore = usePermissionStoreHook();
+    const { routes: accessRoutes, menuTree } = await permissionStore.generateRoutes();
+    if (menuTree.length > 0) {
+      const menuStore = useMenuStoreHook();
+      menuStore.setMenuTree(menuTree);
+    }
+    const router = (await import("@/router")).default;
+    accessRoutes.forEach((route) => {
+      router.addRoute(route);
+    });
   }
 
   /** 获取当前用户信息 */

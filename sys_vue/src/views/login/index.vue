@@ -144,7 +144,7 @@ function handleLogin() {
       try {
         await userStore.login(loginData.value);
         const redirect = (route.query.redirect as string) ?? "/";
-        window.location.href = import.meta.env.BASE_URL + "#" + redirect;
+        router.push(redirect);
       } catch (error: any) {
         // 错误已在 request interceptor 中处理
       } finally {

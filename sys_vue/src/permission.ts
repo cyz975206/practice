@@ -24,14 +24,12 @@ export function setupPermissionGuard() {
         const hasRoles = userStore.user.roles && userStore.user.roles.length > 0;
 
         if (hasRoles) {
-          if (to.path === '/') {
-            // 已有角色时访问根路径，重定向到第一个动态路由
+          if (to.path === '/' || to.matched.length === 0) {
+            // 已有角色时访问根路径或未匹配路由，重定向到第一个动态路由
             const firstDynamic = router.getRoutes().find(
               (r) => r.path !== '/' && r.path !== '/login' && r.children?.length && r.component
             );
             next(firstDynamic ? { path: firstDynamic.redirect || firstDynamic.path, replace: true } : '/404');
-          } else if (to.matched.length === 0) {
-            from.name ? next({ name: from.name }) : next("/404");
           } else {
             next();
           }
