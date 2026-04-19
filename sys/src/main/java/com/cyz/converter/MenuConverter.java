@@ -31,6 +31,9 @@ public class MenuConverter {
     }
 
     public void updateEntity(SysMenu entity, MenuUpdateRequest request) {
+        if (request.getMenuCode() != null) {
+            entity.setMenuCode(request.getMenuCode());
+        }
         if (request.getMenuName() != null) {
             entity.setMenuName(request.getMenuName());
         }

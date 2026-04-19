@@ -66,6 +66,12 @@ public class SysMenuServiceImpl implements SysMenuService {
                     .orElseThrow(() -> new BizException("父菜单不存在: " + request.getParentId()));
         }
 
+        if (request.getMenuCode() != null && !request.getMenuCode().equals(menu.getMenuCode())) {
+            if (menuRepository.existsByMenuCodeAndIsDeletedFalse(request.getMenuCode())) {
+                throw new BizException("菜单编码已存在: " + request.getMenuCode());
+            }
+        }
+
         menuConverter.updateEntity(menu, request);
         SysMenu saved = menuRepository.save(menu);
 

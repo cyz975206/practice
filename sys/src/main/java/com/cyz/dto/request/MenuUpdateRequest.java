@@ -7,6 +7,9 @@ import lombok.Data;
 @Schema(description = "更新菜单请求")
 public class MenuUpdateRequest {
 
+    @Schema(description = "菜单编码（唯一）", example = "system")
+    private String menuCode;
+
     @Schema(description = "菜单名称", example = "系统管理")
     private String menuName;
 
