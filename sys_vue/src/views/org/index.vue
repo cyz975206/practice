@@ -15,7 +15,7 @@
           <el-icon><Upload /></el-icon>
           <span>导入</span>
         </el-button>
-        <el-button type="primary" @click="handleAdd">
+        <el-button v-hasPerm="['org:add']" type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>
           <span>新增机构</span>
         </el-button>
