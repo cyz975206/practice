@@ -9,6 +9,9 @@ public interface SysRoleMenuRepository extends JpaRepository<SysRoleMenu, Long> 
 
     List<SysRoleMenu> findByRoleIdAndIsDeletedFalse(Long roleId);
 
+    @Transactional
+    void deleteByRoleIdAndIsDeletedFalse(Long roleId);
+
     List<SysRoleMenu> findByRoleIdInAndIsDeletedFalse(List<Long> roleIds);
 
     List<SysRoleMenu> findByMenuIdAndIsDeletedFalse(Long menuId);

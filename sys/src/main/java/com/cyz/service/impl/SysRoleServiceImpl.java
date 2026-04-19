@@ -97,11 +97,7 @@ public class SysRoleServiceImpl implements SysRoleService {
         roleRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new BizException("角色不存在: " + id));
 
-        List<SysRoleMenu> oldMenus = roleMenuRepository.findByRoleIdAndIsDeletedFalse(id);
-        oldMenus.forEach(rm -> rm.setIsDeleted(true));
-        if (!oldMenus.isEmpty()) {
-            roleMenuRepository.saveAll(oldMenus);
-        }
+        roleMenuRepository.deleteByRoleIdAndIsDeletedFalse(id);
 
         List<SysRoleMenu> newMenus = menuIds.stream()
                 .map(menuId -> SysRoleMenu.builder().roleId(id).menuId(menuId).build())
