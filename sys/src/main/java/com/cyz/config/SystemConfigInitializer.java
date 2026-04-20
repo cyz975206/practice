@@ -226,8 +226,9 @@ public class SystemConfigInitializer {
         createMenu("log:login", "登录日志", "M", logDir.getId(), "/log/login", "log/login", "system:log:login", false, 2);
         createMenu("log:system", "系统日志", "M", logDir.getId(), "/log/system", "log/system", "system:log:system", false, 3);
         createMenu("log:security", "安全日志", "M", logDir.getId(), "/log/security", "log/security", "system:log:security", false, 4);
+        createMenu("log:task", "任务日志", "M", logDir.getId(), "/log/task", "log/task", "system:log:task", false, 5);
 
-        log.info("初始化默认菜单完成，共 16 个菜单");
+        log.info("初始化默认菜单完成，共 17 个菜单");
     }
 
     private SysMenu createMenu(String code, String name, String type, Long parentId,

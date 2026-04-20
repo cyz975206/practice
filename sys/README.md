@@ -35,7 +35,7 @@ sys/
 │   │   ├── JwtProperties.java           # JWT配置属性（仅secret，过期时间从系统配置动态读取）
 │   │   ├── TaskProperties.java          # 定时任务配置属性（task.service_name）
 │   │   ├── SchedulerConfig.java         # ThreadPoolTaskScheduler配置
-│   │   ├── DynamicTaskScheduler.java    # 动态定时任务调度引擎（反射+分布式锁）
+│   │   ├── DynamicTaskScheduler.java    # 动态定时任务调度引擎（反射+分布式锁+任务日志上下文）
 │   │   ├── TaskRedisListener.java       # Redis pub/sub任务变更监听（区分refresh/trigger消息）
 │   │   ├── JpaConfig.java               # JPA审计配置
 │   │   ├── WebMvcConfig.java            # CORS + JWT过滤器注册（白名单从系统配置动态读取）
@@ -43,6 +43,7 @@ sys/
 │   ├── common/
 │   │   ├── base/BaseEntity.java         # 基础父表 (@MappedSuperclass)
 │   │   ├── constant/                    # 常量 (CacheConstant)
+│   │   ├── context/                     # 上下文 (TaskLogContext)
 │   │   ├── enums/                       # 枚举 (CommonStatus, OperationType, OrgLevel, OrgStatus, PersonStatus, UserStatus, MenuType, MenuStatus, RoleStatus, LoginType, RiskType, RiskLevel, HandleStatus)
 │   │   ├── annotation/                  # 自定义注解 (@OperationLog)
 │   │   ├── aspect/                      # AOP切面 (OperationLogAspect)
@@ -78,6 +79,7 @@ sys/
 │   │   ├── SysSecurityLog.java          # 安全日志实体
 │   │   └── SysSecurityLogArchive.java   # 安全日志归档实体
 │   │   └── SysTask.java                 # 定时任务实体
+│   │   └── SysTaskLog.java              # 定时任务日志实体
 │   ├── repository/
 │   │   ├── SysOrgRepository.java
 │   │   ├── SysPersonRepository.java
@@ -97,6 +99,7 @@ sys/
 │   │   ├── SysSecurityLogRepository.java
 │   │   └── SysSecurityLogArchiveRepository.java
 │   │   └── SysTaskRepository.java
+│   │   └── SysTaskLogRepository.java
 │   ├── service/
 │   │   ├── SysOrgService.java
 │   │   ├── SysPersonService.java
@@ -112,6 +115,7 @@ sys/
 │   │   ├── SystemLogService.java        # 系统日志服务
 │   │   ├── SecurityLogService.java      # 安全日志服务
 │   │   └── SysTaskService.java          # 定时任务服务
+│   │   └── SysTaskLogService.java       # 定时任务日志服务
 │   │   └── impl/
 │   │       ├── SysOrgServiceImpl.java
 │   │       ├── SysPersonServiceImpl.java
@@ -127,6 +131,7 @@ sys/
 │   │       ├── SystemLogServiceImpl.java
 │   │       └── SecurityLogServiceImpl.java
 │   │       └── SysTaskServiceImpl.java
+│   │       └── SysTaskLogServiceImpl.java
 │   ├── controller/
 │   │   ├── SysOrgController.java
 │   │   ├── SysPersonController.java
@@ -142,11 +147,14 @@ sys/
 │   │   ├── SystemLogController.java     # 系统日志接口
 │   │   └── SecurityLogController.java   # 安全日志接口
 │   │   └── SysTaskController.java       # 定时任务管理接口
+│   │   └── SysTaskLogController.java    # 定时任务日志接口
 │   ├── dto/
 │   │   ├── request/                     # Org*/Person*/Dict*/User*/Menu*/Role*/Config*/Login*Request ...
 │   │   └── response/                    # Org*/Person*/Dict*/User*/Menu*/Role*/Config*/Login*/Cache*Response ...
 │   ├── task/
-│   │   └── LogArchiveTask.java          # 日志归档定时任务
+│   │   ├── LogArchiveTask.java          # 日志归档定时任务
+│   │   ├── helper/TaskLogHelper.java    # 任务日志函数式包装方法
+│   │   └── consumer/TaskLogConsumer.java # Redis队列消费者（BRPOP守护线程）
 │   └── converter/
 │       ├── OrgConverter.java
 │       ├── PersonConverter.java
@@ -303,6 +311,14 @@ sys/
 
 定时任务通过 `ThreadPoolTaskScheduler` + 反射动态调度，变更统一通过 Redis pub/sub 通知所有实例（含本实例）刷新调度器，使用 Redisson 分布式锁保证并发安全。
 
+### 任务日志 (`/api/log/task`)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/log/task` | 分页查询任务日志（支持 taskName/funPath/runResult/startTime/endTime 筛选） |
+
+自动记录：定时任务执行时自动记录运行日志。任务方法通过 `TaskLogHelper.execute()` 包裹执行逻辑，自动记录开始时间、执行详情、结束时间和耗时。日志通过 Redis List 队列异步写入数据库，BRPOP 消费者守护线程负责消费和持久化，分布式环境下每条日志仅被一个实例消费。未使用 `TaskLogHelper` 的任务也会自动记录基础日志（执行结果和耗时）。
+
 ### 字典类型管理 (`/api/dict/type`)
 
 | 方法 | 路径 | 说明 |
@@ -428,7 +444,7 @@ sys/
 
 普通索引：`idx_menu_parent_id (parent_id)`
 
-系统首次启动且菜单表为空时自动初始化的默认菜单（16 个）：
+系统首次启动且菜单表为空时自动初始化的默认菜单（17 个）：
 
 | menu_code | menu_name | menu_type | path | component | perms | sort |
 |-----------|-----------|-----------|------|-----------|-------|------|
@@ -448,6 +464,7 @@ sys/
 | log:login | 登录日志 | M | /log/login | log/login | system:log:login | 2 |
 | log:system | 系统日志 | M | /log/system | log/system | system:log:system | 3 |
 | log:security | 安全日志 | M | /log/security | log/security | system:log:security | 4 |
+| log:task | 任务日志 | M | /log/task | log/task | system:log:task | 5 |
 
 ### sys_role（角色表）
 
@@ -697,6 +714,23 @@ sys/
 
 唯一约束：`uk_task_service_fun (service_name, fun_path)`
 
+### sys_task_log（定时任务日志表）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | bigint | 主键 |
+| task_id | bigint | 定时任务ID |
+| task_name | varchar(64) | 任务名称 |
+| service_name | varchar(64) | 服务名称 |
+| fun_path | varchar(255) | 方法路径 |
+| cron | varchar(32) | 触发时的Cron表达式 |
+| run_result | int | 运行结果（1=成功 0=失败） |
+| run_log | text | 运行日志（开始时间、执行详情、结束时间、耗时） |
+| duration_ms | bigint | 执行耗时（毫秒） |
+| create_time | datetime | 创建时间 |
+
+普通索引：`idx_task_log_task_id (task_id)`, `idx_task_log_fun_path (fun_path)`, `idx_task_log_create_time (create_time)`
+
 系统首次启动且任务表为空时自动初始化默认任务：
 
 | name | service_name | fun_path | cron | has_start |
@@ -727,10 +761,11 @@ sys/
 - **系统日志**: 全局异常处理器自动捕获未预期系统异常写入，也可通过注入 `SystemLogService` 在业务代码中手动记录系统事件
 - **日志归档**: 定时任务每天凌晨2点执行，分别读取操作日志/登录日志/安全日志/系统日志的归档天数配置（默认60天），将超期日志从主表迁移到归档表
 - **动态定时任务**: 定时任务持久化到 `sys_task` 表，通过 `DynamicTaskScheduler` + `ThreadPoolTaskScheduler` + 反射（`beanName.methodName` 格式）动态注册和调度。`SystemConfigInitializer` 启动时读取全部任务按 `redisKey` 分组写入 Redis 缓存并发布通知，各服务实例通过 `TaskRedisListener` 订阅通知后从缓存加载并初始化自己的定时任务。运行时变更（CRUD/启停）统一通过 Redis pub/sub 通知刷新，手动触发通过 `trigger:{funPath}` 消息通知各实例执行。任务执行使用 Redisson 分布式锁（`sys:task:lock:{redisKey}:exec:{funPath}`）保证同一任务只在一个实例执行
+- **任务日志**: 定时任务执行时自动记录运行日志到 `sys_task_log` 表。`DynamicTaskScheduler` 在任务执行前通过 `TaskLogContext`（ThreadLocal）设置任务元数据上下文，任务方法通过 `TaskLogHelper.execute(Supplier<String>)` 包裹执行逻辑，自动记录开始时间、执行详情（任务方法返回的自定义内容）、结束时间和耗时。日志通过 Redis List 队列（`sys:task:log:queue`，LPUSH/BRPOP）异步写入数据库，`TaskLogConsumer` 守护线程负责消费和持久化。未使用 `TaskLogHelper` 的任务也会自动记录基础日志。分布式安全：任务执行由 Redisson 锁保护、ThreadLocal 线程隔离、Redis LPUSH/BRPOP 原子操作保证每条日志仅被一个消费者实例处理
 - **系统初始化**: `SystemConfigInitializer` 在 `@PostConstruct` 阶段自动检查并初始化以下数据（已存在则跳过）：
   - 默认配置（13 项）：用户安全、JWT认证、日志审计、缓存策略
   - 默认数据字典（9 个字典类型 + 字典项）：通用状态、机构等级（总行/分行/支行/营业部）、人员状态、用户状态、操作类型、登录类型、安全风险类型、安全风险等级、安全处理状态
-  - 默认菜单（16 个）：组织机构（机构管理、人员管理）、系统管理（用户管理、角色管理、菜单管理、系统配置、数据字典、缓存管理、定时任务）、日志管理（操作日志、登录日志、系统日志、安全日志），仅菜单表为空时初始化
+  - 默认菜单（17 个）：组织机构（机构管理、人员管理）、系统管理（用户管理、角色管理、菜单管理、系统配置、数据字典、缓存管理、定时任务）、日志管理（操作日志、登录日志、系统日志、安全日志、任务日志），仅菜单表为空时初始化
   - 超级管理员角色（super_admin）：分配全部菜单权限，仅角色表为空时初始化
   - admin 用户：默认密码取自 `default_admin_password` 配置（默认 888888），绑定超级管理员角色，仅用户表为空时初始化
   - 默认定时任务：日志归档任务（cron: `0 0 2 * * ?`，启用），仅任务表为空时初始化

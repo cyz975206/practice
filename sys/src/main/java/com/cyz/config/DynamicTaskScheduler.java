@@ -1,6 +1,9 @@
 package com.cyz.config;
 
+import com.cyz.common.constant.CacheConstant;
+import com.cyz.common.context.TaskLogContext;
 import com.cyz.common.exception.BizException;
+import com.cyz.dto.SysTaskLogDTO;
 import com.cyz.entity.SysTask;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -8,11 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,13 +35,15 @@ public class DynamicTaskScheduler {
     private final ThreadPoolTaskScheduler taskScheduler;
     private final RedissonClient redissonClient;
     private final TaskProperties taskProperties;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private final Map<String, ScheduledFuture<?>> runningTasks = new ConcurrentHashMap<>();
 
     /**
      * 解析funPath（格式: beanName.methodName）为Runnable
      */
-    public Runnable resolveTask(String funPath) {
+    public Runnable resolveTask(SysTask task) {
+        String funPath = task.getFunPath();
         String[] parts = funPath.split("\\.");
         if (parts.length != 2) {
             throw new BizException("方法路径格式错误，应为 beanName.methodName: " + funPath);
@@ -56,14 +65,14 @@ public class DynamicTaskScheduler {
             throw new BizException("未找到方法: " + methodName + " (在Bean: " + beanName + "中)");
         }
 
-        return () -> executeWithLock(funPath, bean, method);
+        return () -> executeWithLock(funPath, bean, method, task);
     }
 
     /**
      * 分布式锁保护的任务执行
      */
-    private void executeWithLock(String funPath, Object bean, Method method) {
-        String lockKey = com.cyz.common.constant.CacheConstant.TASK_LOCK + ":" + taskProperties.getServiceName() + ":exec:" + funPath;
+    private void executeWithLock(String funPath, Object bean, Method method, SysTask task) {
+        String lockKey = CacheConstant.TASK_LOCK + ":" + taskProperties.getServiceName() + ":exec:" + funPath;
         RLock lock = redissonClient.getLock(lockKey);
         try {
             boolean locked = lock.tryLock(0, 60, TimeUnit.SECONDS);
@@ -73,7 +82,38 @@ public class DynamicTaskScheduler {
             }
             try {
                 log.debug("动态任务开始执行: {}", funPath);
-                method.invoke(bean);
+
+                LocalDateTime startTime = LocalDateTime.now();
+                TaskLogContext.TaskLogInfo contextInfo = TaskLogContext.TaskLogInfo.builder()
+                        .taskId(task.getId())
+                        .taskName(task.getName())
+                        .serviceName(task.getServiceName())
+                        .funPath(task.getFunPath())
+                        .cron(task.getCron())
+                        .startTime(startTime)
+                        .logged(false)
+                        .build();
+                TaskLogContext.set(contextInfo);
+
+                boolean success = true;
+                String errorMsg = null;
+                try {
+                    method.invoke(bean);
+                } catch (InvocationTargetException e) {
+                    success = false;
+                    Throwable cause = e.getTargetException();
+                    errorMsg = cause.getClass().getSimpleName() + ": " + cause.getMessage();
+                    if (cause instanceof RuntimeException re) {
+                        throw re;
+                    } else if (cause instanceof Error err) {
+                        throw err;
+                    } else {
+                        throw new RuntimeException(cause);
+                    }
+                } finally {
+                    autoLogIfNeeded(contextInfo, success, errorMsg);
+                    TaskLogContext.clear();
+                }
                 log.debug("动态任务执行完成: {}", funPath);
             } finally {
                 lock.unlock();
@@ -87,11 +127,41 @@ public class DynamicTaskScheduler {
     }
 
     /**
+     * 如果任务方法未使用 TaskLogHelper，自动写入基础日志
+     */
+    private void autoLogIfNeeded(TaskLogContext.TaskLogInfo contextInfo, boolean success, String errorMsg) {
+        if (contextInfo.isLogged()) {
+            return;
+        }
+        long durationMs = Duration.between(contextInfo.getStartTime(), LocalDateTime.now()).toMillis();
+        String runLog;
+        if (success) {
+            runLog = "任务执行完成";
+        } else {
+            runLog = errorMsg != null ? "异常信息: " + errorMsg : "任务执行失败";
+        }
+        SysTaskLogDTO dto = new SysTaskLogDTO();
+        dto.setTaskId(contextInfo.getTaskId());
+        dto.setTaskName(contextInfo.getTaskName());
+        dto.setServiceName(contextInfo.getServiceName());
+        dto.setFunPath(contextInfo.getFunPath());
+        dto.setCron(contextInfo.getCron());
+        dto.setRunResult(success ? 1 : 0);
+        dto.setRunLog(runLog);
+        dto.setDurationMs(durationMs);
+        try {
+            redisTemplate.opsForList().leftPush(CacheConstant.TASK_LOG_QUEUE, dto);
+        } catch (Exception e) {
+            log.error("推送任务自动日志到队列失败: funPath={}", contextInfo.getFunPath(), e);
+        }
+    }
+
+    /**
      * 注册定时任务
      */
     public synchronized void addTask(SysTask task) {
         removeTask(task.getFunPath());
-        Runnable runnable = resolveTask(task.getFunPath());
+        Runnable runnable = resolveTask(task);
         try {
             CronTrigger trigger = new CronTrigger(task.getCron());
             ScheduledFuture<?> future = taskScheduler.schedule(runnable, trigger);
@@ -117,7 +187,7 @@ public class DynamicTaskScheduler {
      * 手动触发一次（异步执行，分布式锁保护）
      */
     public void executeTaskNow(SysTask task) {
-        Runnable runnable = resolveTask(task.getFunPath());
+        Runnable runnable = resolveTask(task);
         taskScheduler.execute(runnable);
     }
 

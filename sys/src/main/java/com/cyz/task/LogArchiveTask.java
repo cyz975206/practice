@@ -2,6 +2,7 @@ package com.cyz.task;
 
 import com.cyz.entity.*;
 import com.cyz.repository.*;
+import com.cyz.task.helper.TaskLogHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,25 +24,27 @@ public class LogArchiveTask {
     private final SysSystemLogArchiveRepository systemLogArchiveRepository;
     private final SysSecurityLogRepository securityLogRepository;
     private final SysSecurityLogArchiveRepository securityLogArchiveRepository;
+    private final TaskLogHelper taskLogHelper;
 
     private static final int DEFAULT_ARCHIVE_DAYS = 60;
 
     @Transactional
     public void archiveLogs() {
-        int operationDays = getConfigDays("operation_log_retention_days");
-        int loginDays = getConfigDays("login_log_retention_days");
-        int securityDays = getConfigDays("security_log_retention_days");
-        int systemDays = getConfigDays("system_log_retention_days");
+        taskLogHelper.execute(() -> {
+            int operationDays = getConfigDays("operation_log_retention_days");
+            int loginDays = getConfigDays("login_log_retention_days");
+            int securityDays = getConfigDays("security_log_retention_days");
+            int systemDays = getConfigDays("system_log_retention_days");
 
-        log.info("开始执行日志归档任务，归档天数: 操作={}, 登录={}, 安全={}, 系统={}", operationDays, loginDays, securityDays, systemDays);
+            int operationCount = archiveOperationLogs(LocalDateTime.now().minusDays(operationDays));
+            int loginCount = archiveLoginLogs(LocalDateTime.now().minusDays(loginDays));
+            int systemCount = archiveSystemLogs(LocalDateTime.now().minusDays(systemDays));
+            int securityCount = archiveSecurityLogs(LocalDateTime.now().minusDays(securityDays));
 
-        int operationCount = archiveOperationLogs(LocalDateTime.now().minusDays(operationDays));
-        int loginCount = archiveLoginLogs(LocalDateTime.now().minusDays(loginDays));
-        int systemCount = archiveSystemLogs(LocalDateTime.now().minusDays(systemDays));
-        int securityCount = archiveSecurityLogs(LocalDateTime.now().minusDays(securityDays));
-
-        log.info("日志归档完成: 操作日志={}, 登录日志={}, 系统日志={}, 安全日志={}",
-                operationCount, loginCount, systemCount, securityCount);
+            return String.format("归档天数: 操作=%d, 登录=%d, 安全=%d, 系统=%d | 归档数量: 操作=%d, 登录=%d, 系统=%d, 安全=%d",
+                    operationDays, loginDays, securityDays, systemDays,
+                    operationCount, loginCount, systemCount, securityCount);
+        });
     }
 
     private int getConfigDays(String configKey) {

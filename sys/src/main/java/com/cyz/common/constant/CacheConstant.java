@@ -11,6 +11,7 @@ public class CacheConstant {
     public static final String TASK_LIST_PREFIX = "sys:task:list:";
     public static final String TASK_CHANNEL_PREFIX = "sys:task:channel:";
     public static final String TASK_LOCK = "sys:task:lock";
+    public static final String TASK_LOG_QUEUE = "sys:task:log:queue";
 
     private CacheConstant() {
     }
