@@ -84,6 +84,29 @@ export interface SecurityLogHandleForm {
   handleNote?: string;
 }
 
+/** 任务日志查询参数 */
+export interface TaskLogQuery extends PageQuery {
+  taskName?: string;
+  funPath?: string;
+  runResult?: number;
+  startTime?: string;
+  endTime?: string;
+}
+
+/** 任务日志视图对象 */
+export interface TaskLogVO {
+  id: number;
+  taskId: number;
+  taskName: string;
+  serviceName: string;
+  funPath: string;
+  cron: string;
+  runResult: number;
+  runLog?: string;
+  durationMs: number;
+  createTime: string;
+}
+
 /** 安全日志视图对象 */
 export interface SecurityLogVO {
   id: number;

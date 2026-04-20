@@ -1484,6 +1484,54 @@
 
 ---
 
+## 任务日志 `/api/log/task`
+
+### GET `/api/log/task` — 分页查询任务日志
+
+**Query 参数**:
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| taskName | String | 否 | — | 任务名称（模糊匹配） |
+| funPath | String | 否 | — | 方法路径 |
+| runResult | Integer | 否 | — | 运行结果：`1`-成功 `0`-失败 |
+| startTime | String | 否 | — | 开始时间（格式：`yyyy-MM-dd HH:mm:ss`） |
+| endTime | String | 否 | — | 结束时间（格式：`yyyy-MM-dd HH:mm:ss`） |
+| page | Integer | 否 | 1 | 页码 |
+| size | Integer | 否 | 10 | 每页条数 |
+
+**Response** `R<Page<TaskLogResponse>>`
+
+```json
+{
+  "code": 200,
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "taskId": 1,
+        "taskName": "日志归档任务",
+        "serviceName": "sys",
+        "funPath": "logArchiveTask.archiveLogs",
+        "cron": "0 0 2 * * ?",
+        "runResult": 1,
+        "runLog": "开始时间: 2025-01-01 02:00:00\n执行详情: 归档天数: 操作=60, 登录=60, 安全=60, 系统=60 | 归档数量: 操作=10, 登录=5, 系统=3, 安全=1\n结束时间: 2025-01-01 02:00:05\n执行耗时: 5123ms",
+        "durationMs": 5123,
+        "createTime": "2025-01-01T02:00:05"
+      }
+    ],
+    "totalElements": 1,
+    "totalPages": 1,
+    "number": 0,
+    "size": 10
+  }
+}
+```
+
+> 任务日志为定时任务执行时自动记录，包含开始时间、执行详情（任务方法返回的自定义内容）、结束时间和执行耗时。通过 Redis 队列异步写入数据库。
+
+---
+
 ## 系统初始化数据
 
 系统首次启动时，`SystemConfigInitializer` 自动初始化以下数据（已存在则跳过）。
@@ -1587,7 +1635,7 @@
 | `HANDLED` | 已处理 | `2` |
 | `IGNORED` | 已忽略 | `3` |
 
-### 默认菜单（16 个）
+### 默认菜单（17 个）
 
 系统首次启动且菜单表为空时初始化，菜单树结构如下：
 
@@ -1609,7 +1657,8 @@
 ├── 操作日志 (M) /log/operation     → component: log/operation      perms: system:log:operation
 ├── 登录日志 (M) /log/login         → component: log/login          perms: system:log:login
 ├── 系统日志 (M) /log/system        → component: log/system         perms: system:log:system
-└── 安全日志 (M) /log/security      → component: log/security       perms: system:log:security
+├── 安全日志 (M) /log/security      → component: log/security       perms: system:log:security
+└── 任务日志 (M) /log/task          → component: log/task            perms: system:log:task
 ```
 
 > 前端路由组件路径（`component` 字段）需与实际前端组件文件路径对应。
