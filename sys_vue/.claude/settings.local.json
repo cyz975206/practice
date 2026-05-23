@@ -52,7 +52,10 @@
       "Bash(mkdir -p C:/Work/GitHub/Practice/sys_vue/src/views/task)",
       "Bash(git -C /c/Work/GitHub/Practice/sys_vue add src/views/org/index.vue)",
       "Bash(git -C:*)",
-      "Bash(git -C /c/Work/GitHub/Practice/sys_vue push)"
+      "Bash(git -C /c/Work/GitHub/Practice/sys_vue push)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

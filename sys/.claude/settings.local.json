@@ -28,7 +28,9 @@
       "Bash(find ./src -type f -name *Test*)",
       "Bash(find ./src -type f -name *test* -iname *test*)",
       "Bash(find ./src/main/resources -name *.yml -o -name *.yaml -o -name *.properties)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(find . -name \"*.java\" -path \"*/src/main/*\" -exec grep -l \"@SpringBootApplication\\\\|@EnableScheduling\\\\|@Scheduled\" {})",
+      "Bash(find . -name \"*.java\" -exec grep -l \"@Scheduled\\\\|ScheduledTask\" {})"
     ]
   }
 }
