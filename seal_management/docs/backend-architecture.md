@@ -19,23 +19,31 @@
 
 ## 2. 技术栈
 
-| 类别 | 选型 | 版本 | 用途 |
+> **锚点：Java 17 + Spring Boot 3.5**（保守文档派 —— Flowable 7 / SB3 是文档、教程、JD 识别度最厚的组合，最好搭好学）。
+> ⚠️ **Spring Boot 3.5 已于 2026-06-30 EOL**：简历项目以此换取文档与生态识别度。若改走 current 派（SB 4.1 + Flowable 8），下表 SB 相关版本整体上移（`mybatis-plus-spring-boot4-starter` / Flowable 8 / Redisson SB4 starter），其余中间件不变。
+> **信创可移植（ADR-0001）**：DB 走 PostgreSQL（→ OpenGauss/人大金仓）；缓存/搜索**决定保留主流的 Redis / Elasticsearch**（许可 SSPL/ELv2，不反转 ADR-0005）。若某信创部署要求全开源，可经端口-适配器平滑替换为 **Valkey 8（BSD）** / **OpenSearch 2（Apache 2.0）**，业务无感。
+
+| 类别 | 选型 | 版本（2026-07 钉死） | 用途 / 备注 |
 |---|---|---|---|
-| 语言 | Java | 17 (LTS) | |
-| 应用框架 | Spring Boot | 3.x | Web/事务/自动装配 |
-| 持久层 | MyBatis-Plus | 3.5.x | ORM + **多租户插件**（行级隔离） |
-| 数据库 | PostgreSQL | 15 | 主库（OpenGauss/人大金仓可迁移） |
-| 缓存 | Redis | 7.x | 缓存 / 会话 / 分布式锁 / 限流计数 |
-| 消息队列 | **RabbitMQ** | 3.x | 异步消息：通知 / 审计 / 设备事件 / 副作用 |
-| 分布式调度 | **XXL-JOB** | 2.4.x | 定时任务（借用超时、排班轮值、报表、归档） |
-| 搜索分析 | **Elasticsearch** | 8.x | 审计日志 / 用印记录检索 + 集团统计 |
-| 工作流 | Flowable | 7.x | 审批引擎（BPMN） |
-| 对象存储 | StoragePort + S3(MinIO 等)/本地 双适配器 | — | 印模/文档/扫描件/签章PDF；配置切换 |
-| 认证授权 | Spring Security + JWT | — | 认证 + RBAC，SSO-ready |
-| 实时通信 | WebSocket (STOMP) | — | 站内信实时推送 |
+| 语言 | Java | **17 (LTS)** | 锚点 |
+| 应用框架 | Spring Boot | **3.5.x**（3.5.16） | Web/事务/自动装配（⚠️ EOL，见上） |
+| Spring 框架 | Spring Framework / Security | **6.2.x / 6.4.x**（随 SB 3.5） | |
+| 持久层 | MyBatis-Plus | **3.5.16**（`mybatis-plus-spring-boot3-starter`，+ mybatis-spring 3.0.x） | ORM + **多租户插件**（行级隔离，ADR-0002） |
+| 数据库 | PostgreSQL | **16**（可 17） | 主库；OpenGauss/人大金仓 可迁（ADR-0001） |
+| 缓存 | Redis | **7.x**（7.4） | 缓存/会话/限流。⚠️ SSPL；信创可换 **Valkey 8（BSD）** |
+| 分布式锁 | Redisson | **3.50.x**（`redisson-spring-boot-starter` + `redisson-spring-data-3x`） | 分布式锁/限流（集群级，ADR-0009） |
+| 消息队列 | **RabbitMQ** | **4.2.x**（开 STOMP 插件） | 异步消息 + WS STOMP relay（ADR-0009） |
+| 分布式调度 | **XXL-JOB** | **3.x**（3.0.0+，SB3 原生；执行器 `xxl-job-core`） | 定时任务（借用超时、排班轮值、报表、归档） |
+| 搜索分析 | **Elasticsearch** | **8.x** | 审计/用印检索 + 集团统计。⚠️ ELv2/SSPL/AGPL；信创可换 **OpenSearch 2（Apache 2.0）** |
+| 工作流 | Flowable | **7.1.0**（`flowable-spring-boot-starter`） | 审批引擎（BPMN，ADR-0003） |
+| 对象存储 | MinIO + StoragePort 本地适配器 | **MinIO 最新 RELEASE**（S3 兼容） | 印模/文档/签章PDF；配置切换（ADR-0006） |
+| 认证授权 | Spring Security 6.4.x + **jjwt 0.12.6** | — | 认证 + RBAC，SSO-ready |
+| 实时通信 | WebSocket (STOMP) → RabbitMQ STOMP relay | — | 站内信实时推送（ADR-0009） |
+| API 文档 | Knife4j | **4.5.0**（`knife4j-openapi3-jakarta-spring-boot-starter`） | OpenAPI3 文档 |
+| 连接池/监控 | Druid | **1.2.23**（`druid-spring-boot-3-starter`） | 数据源 + SQL 监控 |
+| 工具 | Lombok 1.18.x / MapStruct 1.6.x / Hutool 5.8.x（可选） | — | 样板代码 / Bean 映射 / 工具集 |
 | 审计日志 | Spring AOP + 注解 | — | `@OperationLog` 切面异步入库 |
-| 构建 | Maven | — | |
-| 部署 | Docker Compose / K8s / GitHub Actions | — | 本地一键起 + 生产化 + CI/CD |
+| 构建/部署 | Maven / Docker Compose / K8s / GitHub Actions | — | 本地一键起 + 生产化 + CI/CD |
 
 > 三项加粗（RabbitMQ / XXL-JOB / Elasticsearch）为本轮新增的"刚需"基础设施（ADR-0005）。
 
