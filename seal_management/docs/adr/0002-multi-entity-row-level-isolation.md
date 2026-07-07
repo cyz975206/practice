@@ -14,5 +14,5 @@
 ## Consequences
 
 - Every business table MUST include `legal_entity_id`; a new table that omits it will be silently unfiltered by the tenant plugin — guard against this in review/tests.
-- The 集团 oversight "ignore tenant" path must be narrowly limited to audit/statistics roles and audited.
+- The cross-**法人实体** ("ignore tenant") path is gated by a **GROUP-scoped role** (scope is a property of the role, not of the user's home entity): only **集团审计员 / 集团管理员** (audit/statistics) may use it, and every such access is itself audited.
 - `legal_entity_id` participates in unique constraints/indexes where scope is per-entity (e.g., seal numbering, department codes).

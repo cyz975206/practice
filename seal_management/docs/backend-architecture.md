@@ -149,7 +149,8 @@ flowchart TD
 
 - **Flowable** 承载流程编排：BPMN 流程定义、任务、历史；会签/或签/单签用**多实例任务 + 完成条件**；上报集团用**排他网关 + 条件**（ADR-0003）。
 - **自定义解析胶水**（核心难点）：通过 task listener / candidate 表达式调用 Java bean，按 **岗位 + 排班** 解析**当值**审批人，处理 **B角顶替** 与 **双岗**（详见 `CONTEXT.md` 的 岗位/B角/当值/排班/签批方式）。
-- 审批流定义**版本化**：在途申请继续跑其启动时的版本，不受后续改版影响。
+- 审批流**配置即数据 + 每申请快照**：审批流是业务配置（节点/签批方式/岗位引用，管理员在 UI 配置，非 BPMN）；Flowable 用一个通用多节点审批 BPMN 作执行器；申请提交时把当前配置版本快照挂到流程实例，在途申请读自己快照、新申请读最新。版本隔离在配置快照层，BPMN 静态不随配置重生成。
+- **集群运行**（分布式）：流程定义部署一次到共享 DB（不靠每节点启动自动部署，避免版本风暴）；所有节点开 async job executor，靠 Flowable 原生 DB 作业锁防重复执行（[ADR-0009](./adr/0009-distributed-deployment-topology.md)）。
 
 ---
 
@@ -163,7 +164,7 @@ flowchart TD
 | 用印副作用 | `usage.completed.queue` | 统计更新、文档归档等后置动作 |
 
 - **可靠性**：至少一次投递 + 消费者幂等（业务唯一键去重）；持久化队列 + 手动 ack。
-- **站内信实时性**：通知消费者写库后，经 WebSocket 通道推送给在线用户。
+- **站内信实时性**：通知消费者写库后，经 WebSocket 通道推送给在线用户；**分布式下**经 RabbitMQ STOMP relay 路由，确保跨实例送达（用户连在 A 实例、通知由 B 实例产生也能投递）。
 
 ---
 
@@ -171,7 +172,7 @@ flowchart TD
 
 | 任务 | 触发 | 作用 |
 |---|---|---|
-| 借用超时提醒 | 定时（如每 5 分钟） | 扫描"履行中-借出"超期未还，发提醒/升级 |
+| 借用超时提醒 | 定时（如每 5 分钟） | 扫描"履行中-借出"超期未还：提醒申请人+保管员 → 升级法人实体管理员 → 超最大宽限期标 失败/超时 并开 遗失 事件（转公告作废） |
 | 排班轮值 | 定时（每日） | 推进岗位当值人切换（A角↔B角） |
 | 集团报表 | 定时（日/周/月） | 跨实体用印统计 → ES 聚合 → 推送/导出 |
 | 数据归档/清理 | 定时 | 归档历史申请、清理过期临时文件 |
@@ -351,5 +352,7 @@ flowchart TB
 | [0005](./adr/0005-async-scheduling-search-infra.md) | 异步/调度/搜索：RabbitMQ + XXL-JOB + Elasticsearch |
 | [0006](./adr/0006-switchable-storage-s3-local.md) | 文件存储：可切换 S3 / 本地双适配器 |
 | [0007](./adr/0007-integration-layer-ports-adapters.md) | 三方集成层：能力端口 + 企业适配器 + 配置注册 |
+| [0008](./adr/0008-seal-numbering-registry-row-lock-gapfill.md) | 印章编号：registry 表 + DB 行锁 + 缺口填补（并发安全/占号跳号） |
+| [0009](./adr/0009-distributed-deployment-topology.md) | 分布式部署拓扑：无状态共享 + WS STOMP relay + Flowable 集群 + 集群级锁 |
 
 > 领域术语与状态机详见 [`CONTEXT.md`](../CONTEXT.md)。

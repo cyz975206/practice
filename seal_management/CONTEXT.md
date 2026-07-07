@@ -13,7 +13,7 @@ A tangible seal engraved from material — e.g. 公章, 财务章, 合同章, �
 _Avoid_: 物理印章, 纸质印章, real seal
 
 **电子印章 (Electronic Seal)**:
-A digital seal bound to a cryptographic certificate, applied to electronic documents to produce legally-recognized e-signatures.
+A digital seal bound to a cryptographic certificate, applied to electronic documents via the **签章接口** to produce legally-recognized e-signatures. It reuses the **印章状态** lifecycle, but its transitions are *certificate-driven* (在用 = valid unexpired cert; expiry → 停用; revocation → 销毁). It has no **保管员** and cannot be **借用** (nothing physical to hold); its **用印方式** is fixed to **电子签章**. It still requires an **印模** (for the **签章接口** to render/stamp).
 _Avoid_: 数字印章, e章, digital stamp
 
 **印章类型 (Seal Type)**:
@@ -31,7 +31,7 @@ _Avoid_: 租户 (an implementation alias for the isolation pattern — not a dom
 ### Physical seal usage
 
 **保管员 (Custodian)**:
-The person responsible for holding a **实体印章** and controlling its use — either stamping on the applicant's behalf (代盖章) or handing the seal over and taking it back (借用). A seal has one custodian at a time.
+The person accountable for holding a specific **实体印章** and controlling its use — either stamping on the applicant's behalf (代盖章) or handing the seal over and taking it back (借用). Custody is a **per-seal assignment**, not a system role and not a **岗位**: any active person within the **法人实体** may be designated. A seal has one custodian at a time, but one person may be custodian of multiple seals. The **法人实体管理员** assigns custody and can change it (保管员变更).
 _Avoid_: 印章管理员 (ambiguous — sounds like a system administrator), 保管人
 
 **用印申请 (Seal Usage Application)**:
@@ -39,7 +39,7 @@ A formal request by a user to use a specific **印章** for a stated purpose, wh
 _Avoid_: 申请单, 用印单, 用印请求
 
 **用印申请状态 (Application Status)**:
-The lifecycle state of a **用印申请**: 草稿, 审批中, 已拒绝, 已撤销 (withdrawn by applicant), 已审批 (approved, pending fulfillment), 履行中 (being fulfilled — device interaction in progress, with async sub-states), 已完成, 失败/超时.
+The lifecycle state of a **用印申请**: 草稿, 审批中, 已拒绝, 已撤销 (withdrawn by applicant), 已审批 (approved, pending fulfillment), 履行中 (being fulfilled — with async sub-states), 已完成, 失败/超时. During 履行中, completion is **channel-driven**: device/integration **用印方式** (一体机 / 印章柜 / 电子签章) advance via device callback/event; **人工代盖章** and non-cabinet **借用** advance via **保管员** manual confirmation. **借用** modes hold a long-lived **借出中** sub-state (a seal may be out for hours or days), governed by a non-return timeout.
 _Avoid_: 申请状态 (too generic)
 
 **代盖章 (Stamp-on-Behalf)**:
@@ -83,7 +83,7 @@ _Avoid_: 子公司管理员, 分公司管理员 (use the canonical term regardle
 ### Approval
 
 **审批流 (Approval Flow)**:
-An ordered sequence of **审批节点** that a **用印申请** passes through. Configured per combination of **法人实体**, **印章类型**, and usage purpose.
+An ordered sequence of **审批节点** that a **用印申请** passes through. Configured per combination of **法人实体**, **印章类型**, and usage purpose. It is **business configuration (data)** — edited by admins via UI, not BPMN; a submitted **用印申请** snapshots the config version it started on, so in-flight applications are unaffected by later edits (see ADR-0003).
 _Avoid_: 审批流程 (verbose), 工作流 (too generic)
 
 **审批节点 (Approval Node)**:
@@ -91,7 +91,7 @@ One step in an **审批流**. A node resolves its candidate approvers via a reso
 _Avoid_: 审批环节, 节点 (too generic)
 
 **签批方式 (Sign Mode)**:
-How a **审批节点** is satisfied given its candidates — configurable per node: 单签 (one designated person), 或签 (any one of the candidates), or 多签 (a quorum of N-of-M, including all-M 会签 / dual-control).
+The sole determinant of *how many candidates must sign* to satisfy a **审批节点** — configurable per node: 单签 (one designated person), 或签 (any one of the candidates), or 多签 (a quorum of N-of-M, including all-M 会签). It is orthogonal to how many candidates a resolver yields: dual-control (四眼原则) is a **双岗** **岗位** (two 当值 candidates) combined with 多签/会签 — never implied by seat count alone.
 _Avoid_: 审批方式 (ambiguous)
 
 **待办 (Todo)**:
@@ -101,7 +101,7 @@ _Avoid_: 任务 (too generic), 待办事项
 ### Positions & duty
 
 **岗位 (Position)**:
-An organizational position with approval authority (e.g., a department-head seat). May be multi-seat (双岗); each seat has a primary holder (正岗 / A角) and a **B角**, and its active holder at any time is determined by the **排班**.
+An organizational position with approval authority (e.g., a department-head seat). A 岗位 has one or more **seats** (单岗 = one seat, 双岗 = two seats); each seat has a primary holder (正岗 / A角) and a **B角**, and its active holder at any time (the **当值**) is determined by the **排班**. A 岗位 thus yields one **当值** candidate per seat (双岗 → two). Seat count decides *how many candidates* a 岗位 produces — not how many must sign; that is the **签批方式**'s job (the two are orthogonal).
 _Avoid_: 职务 (an HR duty title), 职位 (a different concept — see below)
 
 **职位 (HR Position)**:
@@ -123,7 +123,7 @@ _Avoid_: 值班表
 ### Seal lifecycle
 
 **印章状态 (Seal Status)**:
-The lifecycle state of a **实体印章**: 待启用 (engraved and recorded, not yet active), 在用 (active, has a **保管员**), 停用 (temporarily suspended), or 销毁 (permanently retired). Progresses generally 待启用 → 在用 ⇄ 停用 → 销毁.
+The lifecycle state of a **印章** — shared by both **实体印章** and **电子印章**: 待启用, 在用, 停用, or 销毁; generally 待启用 → 在用 ⇄ 停用 → 销毁. The *triggers* differ by kind: a **实体印章** is 在用 when it has a **保管员**, and its transitions are custody / handover / **遗失**-driven; an **电子印章** is 在用 when its cryptographic certificate is valid and unexpired, cert expiry auto-suspends to 停用, and revocation retires to 销毁. **公告作废中** (under public invalidation after **遗失**) is a sub-state of **停用** that applies to **实体印章** only; it resolves either back to **在用** (recovered within the notice period) or to **销毁** (notice expired).
 _Avoid_: 状态 (too generic)
 
 **借出中 (Lent Out)**:
@@ -131,7 +131,7 @@ A transient sub-state of **在用**: the seal is currently in an applicant's pos
 _Avoid_: 外借中
 
 **遗失 (Lost)**:
-An incident on a **实体印章** — reported lost, then marked and publicly invalidated (公告作废) to prevent misuse; forces a move toward **销毁**.
+An incident on a **实体印章** — reported lost, then it enters **公告作废** (public invalidation to prevent misuse). 公告作废 is **two-phase**: a configurable notice period during which the seal is suspended (**印模** blacklisted, in-flight **用印申请** blocked); if recovered within the period it returns to **在用**, otherwise (XXL-JOB checks notice expiry) it finalizes to **销毁** (irreversible).
 _Avoid_: 丢失 (casual), 挂失 (the *report* action, not the incident)
 
 ### Numbering
@@ -179,7 +179,7 @@ A device that prints a document and auto-stamps the **实体印章** at given **
 _Avoid_: 盖章机; 一体机 (acceptable shorthand)
 
 **智能印章柜 (Smart Seal Cabinet)**:
-A locker-style device (蜂巢柜-like) that stores **实体印章** and controls access via **授权码**. It does NOT auto-stamp — it only controls storage and tracks door open/return.
+A locker-style device (蜂巢柜-like) that stores **实体印章** and controls access via **授权码**. It does NOT auto-stamp — it only controls storage and tracks door open/return. The cabinet is a **storage and access intermediary** for a **借用**: it does NOT replace the seal's human **保管员**, who remains accountable (non-return, **遗失**, etc.). The **授权码** lets the applicant self-serve the handover/return that the **保管员** would otherwise do by hand.
 _Avoid_: 印章柜 (acceptable shorthand), 印章盒
 
 **授权码 (Authorization Code)**:
@@ -220,17 +220,18 @@ _Avoid_: 数仓 (related but distinct)
 
 ## Relationships
 
-- A **印章** is exactly one of: a **实体印章** or an **电子印章** — never both
+- A **印章** is exactly one of: a **实体印章** or an **电子印章** — never both; both share **印章状态**, but physical transitions are custody-driven and electronic transitions are certificate-driven (an **电子印章** has no **保管员**/**借用** and uses only **电子签章**)
 - Both kinds carry a **印章类型**
 - A **集团** contains many **法人实体**
 - Every **印章**, user, and configuration belongs to exactly one **法人实体**
-- A **实体印章** has one **保管员** at a time
+- A **实体印章** has one **保管员** at a time; custody is a per-seal assignment (not a role or **岗位**), and one person may hold custody of multiple seals
 - An approved **用印申请**, once fulfilled, produces a **使用记录**
 - In **借用** mode, fulfillment includes a handover and a return; in **代盖章** mode it does not
-- Roles are scoped by level: **集团**-level roles act across all **法人实体**; entity-level roles are confined to one **法人实体**
-- A **用印申请** is routed through an **审批流** of **审批节点**; each node resolves candidates (by **岗位**, role, user, or rule) and is satisfied per its **签批方式**
+- **Role scope** is a property of the role, not of where a user resides: every role is **ENTITY**-scoped (confined to the holder's **法人实体**) or **GROUP**-scoped (cross-**法人实体**, bypassing row isolation per ADR-0002). Cross-entity power comes from holding a GROUP-scoped role (**集团管理员** / **集团审计员** / **集团审批人**); such people typically reside in the 集团本部 **法人实体**, but 集团本部 is otherwise an ordinary entity
+- A **用印申请** is routed through an **审批流** of **审批节点**; each node resolves candidates (by **岗位**, role, user, or rule) and is satisfied per its **签批方式**. Candidate *count* (a **双岗** **岗位** yields two **当值**) and *sign count* (**签批方式**) are orthogonal — dual-control is 双岗 + 多签/会签
 - A **岗位** seat's active holder is its **当值** member, set by the **排班**; a **B角** acts when the primary is off-duty
 - A **实体印章** has a **印章状态**; **借出中** is a transient sub-state of **在用**
+- A **借用** not returned past its max grace period escalates to a **遗失** incident (→ 公告作废), not merely a 失败/超时 application — an unreturned seal is a loss risk
 - A **遗失** incident forces public invalidation and a move toward **销毁**
 - A **印章** has a **印模** (created via 制作印模); **拖章定位** produces the **坐标** for stamping/signing
 - An approved **用印申请** is fulfilled via one **用印方式**: 一体机自动盖章 and 电子签章 require **印模** + **坐标**; 印章柜借用 requires an **授权码**; 人工代盖章 needs neither device
