@@ -26,9 +26,9 @@ import java.util.Set;
 @Configuration
 public class MybatisPlusConfig {
 
-    /** 全局表（不参与行级隔离）：法人实体本身（租户单位）、系统字典、菜单、角色、机构主数据等。 */
+    /** 全局表（不参与行级隔离）：法人实体本身（租户单位）。其余全局表随上下文实现补充。 */
     private static final Set<String> GLOBAL_TABLES = Set.of(
-            "legal_entity", "sys_dict_type", "sys_dict_item", "sys_menu", "sys_role", "sys_config"
+            "legal_entity"
     );
 
     @Bean
@@ -58,7 +58,7 @@ public class MybatisPlusConfig {
             }
         }));
 
-        // 2) 分页（DbType 运行期由数据源决定；dev=H2，prod=PostgreSQL）
+        // 2) 分页（固定 PostgreSQL 方言，ADR-0001：本项目仅 PG / 信创 PG 系）
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
 
         return interceptor;

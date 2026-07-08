@@ -21,9 +21,6 @@ public class LegalEntity extends BaseEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    /** 所属集团（一个部署 = 一个集团；集团表后续补，骨架先留字段）。 */
-    private Long groupId;
-
     /** 法人实体编码（唯一）。 */
     private String code;
 

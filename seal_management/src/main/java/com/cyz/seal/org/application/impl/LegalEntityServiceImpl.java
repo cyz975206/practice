@@ -19,7 +19,6 @@ public class LegalEntityServiceImpl extends ServiceImpl<LegalEntityMapper, Legal
             throw new BusinessException("法人实体编码已存在: " + req.code());
         }
         LegalEntity entity = new LegalEntity();
-        entity.setGroupId(req.groupId());
         entity.setCode(req.code());
         entity.setFullName(req.fullName());
         entity.setShortName(req.shortName());

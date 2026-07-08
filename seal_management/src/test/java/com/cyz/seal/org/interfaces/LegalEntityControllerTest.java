@@ -27,7 +27,7 @@ class LegalEntityControllerTest {
     @Test
     void createThenList() throws Exception {
         String code = "LE_" + System.nanoTime();
-        String body = "{\"groupId\":1,\"code\":\"" + code + "\","
+        String body = "{\"code\":\"" + code + "\","
                 + "\"fullName\":\"测试法人\",\"shortName\":\"测试\",\"entityType\":\"GROUP_HQ\"}";
 
         // 创建

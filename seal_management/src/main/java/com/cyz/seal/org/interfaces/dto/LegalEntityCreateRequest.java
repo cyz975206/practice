@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotNull;
  * 创建法人实体请求。
  */
 public record LegalEntityCreateRequest(
-        @NotNull Long groupId,
         @NotBlank String code,
         @NotBlank String fullName,
         String shortName,
