@@ -83,6 +83,16 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- DB 迁移：Flyway（业务表 DDL 版本化管理；Flowable 的 ACT_* 表由其自行管理，互不冲突）-->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <!-- 缓存 / 分布式锁（ADR-0009：集群级锁）-->
         <dependency>
             <groupId>org.springframework.boot</groupId>

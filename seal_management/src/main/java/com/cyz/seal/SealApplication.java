@@ -1,5 +1,6 @@
 package com.cyz.seal;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 多法人行级隔离见 ADR-0002；分布式部署见 ADR-0009。
  */
 @SpringBootApplication
+@MapperScan("com.cyz.seal.**.infrastructure.persistence.mapper")
 public class SealApplication {
 
     public static void main(String[] args) {

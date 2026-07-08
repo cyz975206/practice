@@ -13,6 +13,10 @@ spring:
       port: 6380           # 宿主 6379 被现有 redis 占用，seal 用 6380
       password: seal123
       timeout: 3000ms
+  flyway:
+    enabled: true
+    baseline-on-migrate: true     # DB 已有 Flowable ACT_* 表，首次引入 Flyway 时先 baseline
+    baseline-version: "0"         # baseline 在 0，保证 V1 仍被执行
   # Redisson 读 spring.data.redis 配置，提供分布式锁（集群级，ADR-0009），不再排除
 
 # Flowable：在 PG 上自动建表（首次启动建 ACT_*）；骨架阶段关闭 async executor（分布式下再开，ADR-0009）
@@ -25,6 +29,7 @@ flowable:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
 
 logging:
   level:

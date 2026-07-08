@@ -26,9 +26,9 @@ import java.util.Set;
 @Configuration
 public class MybatisPlusConfig {
 
-    /** 全局表（不参与行级隔离）：系统字典、菜单、角色、机构主数据等。按需补充。 */
+    /** 全局表（不参与行级隔离）：法人实体本身（租户单位）、系统字典、菜单、角色、机构主数据等。 */
     private static final Set<String> GLOBAL_TABLES = Set.of(
-            "sys_dict_type", "sys_dict_item", "sys_menu", "sys_role", "sys_config"
+            "legal_entity", "sys_dict_type", "sys_dict_item", "sys_menu", "sys_role", "sys_config"
     );
 
     @Bean
