@@ -1,0 +1,31 @@
+# 开发环境：连开发虚拟机 192.168.1.128 的中间件栈（docker-compose.yml 起的）。
+# 生产用 application-prod.yml 覆盖。
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://192.168.1.128:5432/seal
+    username: seal
+    password: seal123
+    type: com.alibaba.druid.pool.DruidDataSource
+  data:
+    redis:
+      host: 192.168.1.128
+      port: 6380           # 宿主 6379 被现有 redis 占用，seal 用 6380
+      password: seal123
+      timeout: 3000ms
+  # Redisson 读 spring.data.redis 配置，提供分布式锁（集群级，ADR-0009），不再排除
+
+# Flowable：在 PG 上自动建表（首次启动建 ACT_*）；骨架阶段关闭 async executor（分布式下再开，ADR-0009）
+flowable:
+  database-schema-update: true
+  async-executor-activate: false
+  history-level: audit
+
+# MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.cyz.seal: debug
