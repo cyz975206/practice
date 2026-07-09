@@ -10,6 +10,7 @@ import com.cyz.seal.iam.interfaces.dto.UserUpdateRequest;
 import com.cyz.seal.iam.interfaces.dto.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/iam/users")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('super_admin','admin')")
 public class UserController {
 
     private final UserService userService;

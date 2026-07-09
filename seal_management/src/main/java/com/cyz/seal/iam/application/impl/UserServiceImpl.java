@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cyz.seal.common.exception.BusinessException;
 import com.cyz.seal.iam.application.UserService;
+import com.cyz.seal.iam.domain.Role;
 import com.cyz.seal.iam.domain.User;
 import com.cyz.seal.iam.domain.UserRole;
+import com.cyz.seal.iam.infrastructure.persistence.mapper.RoleMapper;
 import com.cyz.seal.iam.infrastructure.persistence.mapper.UserMapper;
 import com.cyz.seal.iam.infrastructure.persistence.mapper.UserRoleMapper;
 import com.cyz.seal.iam.interfaces.dto.UserCreateRequest;
@@ -22,9 +24,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
+    /** 普通用户角色 code（新建用户默认授予，CONTEXT：申请人=所有用户的默认角色）。 */
+    private static final String DEFAULT_ROLE_CODE = "user";
+
     private final UserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
     private final OrgMapper orgMapper;   // 校验 org_id 同法人实体
+    private final RoleMapper roleMapper; // 默认角色授予
 
     @Override
     @Transactional
@@ -47,6 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPosition(req.position());
         user.setStatus(1);
         save(user); // 拦截器注入当前法人实体的 legal_entity_id
+        assignDefaultRole(user.getId());
         return user;
     }
 
@@ -105,6 +112,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             userRole.setUserId(userId);
             userRole.setRoleId(roleId);
             userRoleMapper.insert(userRole);
+        }
+    }
+
+    /** 新建用户默认授予"普通用户"角色（当前法人实体内按 code 查；未配置则跳过）。 */
+    private void assignDefaultRole(Long userId) {
+        Role userRole = roleMapper.selectOne(Wrappers.<Role>lambdaQuery().eq(Role::getCode, DEFAULT_ROLE_CODE));
+        if (userRole != null) {
+            UserRole ur = new UserRole();
+            ur.setUserId(userId);
+            ur.setRoleId(userRole.getId());
+            userRoleMapper.insert(ur);
         }
     }
 

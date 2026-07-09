@@ -90,6 +90,16 @@ _Avoid_: 超级管理员, 系统管理员
 An administrator scoped to one **法人实体**: manages its users, departments, seals, custodians, and approval configuration. Cannot see other entities' data.
 _Avoid_: 子公司管理员, 分公司管理员 (use the canonical term regardless of entity type)
 
+### 系统角色 (Seeded system roles)
+
+实现口径：部署在默认法人实体（集团本部）seed 三个系统角色，均为 ENTITY 作用域——
+
+- **超级管理员 (super_admin)**：部署级最高账号，**唯一可管理 法人实体**（全局表）。ENTITY 作用域、**不绕过多租户**（跨实体业务数据的可见性随 GROUP 旁路推迟）。
+- **系统管理员 (admin)**：即 **法人实体管理员**——本实体的系统管理角色（管本实体的用户/角色/机构）。
+- **普通用户 (user)**：即 **申请人**——所有用户的默认角色，API 新建用户自动授予。
+
+其余角色（如 **审批人**）由管理员按需自建（自定义角色）；在"角色→资源权限表"落地前，自定义角色对系统鉴权是惰性的（不自动获得管理权限）。GROUP 作用域的 集团审计员/管理员/审批人 及其跨实体旁路推迟。
+
 ### Approval
 
 **审批流 (Approval Flow)**:

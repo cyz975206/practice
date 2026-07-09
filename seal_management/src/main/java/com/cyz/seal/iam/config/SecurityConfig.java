@@ -4,6 +4,7 @@ import com.cyz.seal.iam.infrastructure.security.JwtAuthenticationFilter;
 import com.cyz.seal.iam.infrastructure.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity   // 开启方法级鉴权（@PreAuthorize），ADR：角色级粗粒度鉴权
 public class SecurityConfig {
 
     @Bean

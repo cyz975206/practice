@@ -33,6 +33,13 @@ public class GlobalExceptionHandler {
         return Result.fail(ResultCode.PARAM_ERROR.getCode(), msg);
     }
 
+    /** 权限不足（@PreAuthorize 校验失败）：HTTP 403。方法级安全抛出的 AccessDeniedException 在此处统一处理。 */
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.FORBIDDEN)
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public Result<Void> handleAccessDenied(org.springframework.security.access.AccessDeniedException e) {
+        return Result.fail(ResultCode.FORBIDDEN);
+    }
+
     /** 兜底：未预期的系统异常，error 级别 + 通用提示（不向前端泄露堆栈）。 */
     @ExceptionHandler(Exception.class)
     public Result<Void> handleOther(Exception e) {
