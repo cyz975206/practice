@@ -34,3 +34,11 @@ mybatis-plus:
 logging:
   level:
     com.cyz.seal: debug
+
+seal:
+  jwt:
+    secret: "seal-management-dev-jwt-secret-change-in-production-0123456789"  # ≥32 字节；生产务必覆盖
+    expiry: 8h
+  bootstrap:
+    admin-password: "888888"   # 首次初始化建的 admin 用户密码
+

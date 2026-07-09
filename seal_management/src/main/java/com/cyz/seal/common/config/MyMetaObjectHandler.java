@@ -1,7 +1,7 @@
 package com.cyz.seal.common.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
-import com.cyz.seal.common.context.LegalEntityContext;
+import com.cyz.seal.common.context.CurrentUserContext;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
 
@@ -37,8 +37,8 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         }
     }
 
-    /** TODO：IAM 接入后从 SecurityContext 取当前用户 ID。 */
+    /** 从当前登录用户上下文取用户 ID（请求线程内由 JWT 过滤器填充）。 */
     private Long currentUserId() {
-        return null;
+        return CurrentUserContext.get();
     }
 }

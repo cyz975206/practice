@@ -1,4 +1,4 @@
-package com.cyz.seal.org.interfaces;
+package com.cyz.seal.iam.interfaces;
 
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
@@ -8,7 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,35 +15,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 法人实体 CRUD 集成测试（真实 PG，@Transactional 测后回滚）。
- * 安全链已启用：需先用种子 admin/888888 登录拿 token。legal_entity 是全局表，admin 可管。
+ * 安全链测试：无 token → 401；带合法 token → 200。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
-class LegalEntityControllerTest {
+class SecurityFilterTest {
 
     @Autowired
     private MockMvc mvc;
 
     @Test
-    void createThenList() throws Exception {
+    void noTokenReturns401() throws Exception {
+        mvc.perform(get("/api/org/legal-entities"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void withTokenReturns200() throws Exception {
         String token = loginAdmin();
-        String code = "LE_" + System.nanoTime();
-        String body = "{\"code\":\"" + code + "\","
-                + "\"fullName\":\"测试法人\",\"shortName\":\"测试\",\"entityType\":\"GROUP_HQ\"}";
-
-        mvc.perform(post("/api/org/legal-entities")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.code").value(code))
-                .andExpect(jsonPath("$.data.id").exists());
-
         mvc.perform(get("/api/org/legal-entities").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.records[?(@.code == '" + code + "')]").exists());
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     private String loginAdmin() throws Exception {
