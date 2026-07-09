@@ -74,7 +74,7 @@ public class IamDataInitializer implements ApplicationRunner {
             User admin = new User();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode(adminPassword));
-            admin.setNickname("超级管理员");
+            admin.setRealName("超级管理员");
             admin.setStatus(1);
             userMapper.insert(admin);
 

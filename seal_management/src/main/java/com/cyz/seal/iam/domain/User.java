@@ -35,8 +35,26 @@ public class User extends BaseEntity {
     @JsonIgnore
     private String password;
 
-    /** 昵称。 */
-    private String nickname;
+    /** 真实姓名（人员信息）。 */
+    private String realName;
+
+    /** 工号（法人实体内唯一，可空）。 */
+    private String employeeNo;
+
+    /** 联系电话。 */
+    private String phone;
+
+    /** 所属部门 sys_org.id。 */
+    private Long orgId;
+
+    /** 职位（HR 头衔）。 */
+    private String position;
+
+    /** 统一平台稳定 ID（同步预留）。 */
+    private String externalId;
+
+    /** 同步来源（同步预留）。 */
+    private String syncSource;
 
     /** 状态：1 启用 0 停用。 */
     private Integer status;

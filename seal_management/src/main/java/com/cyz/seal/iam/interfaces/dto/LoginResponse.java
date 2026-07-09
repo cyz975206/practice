@@ -10,7 +10,7 @@ public record LoginResponse(
     public record UserInfo(
             Long userId,
             String username,
-            String nickname,
+            String realName,
             Long legalEntityId,
             List<String> roleCodes
     ) {

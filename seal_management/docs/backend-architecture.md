@@ -30,6 +30,7 @@
 | Spring 框架 | Spring Framework / Security | **6.2.x / 6.4.x**（随 SB 3.5） | |
 | 持久层 | MyBatis-Plus | **3.5.16**（`mybatis-plus-spring-boot3-starter`，+ mybatis-spring 3.0.x） | ORM + **多租户插件**（行级隔离，ADR-0002） |
 | 数据库 | PostgreSQL | **16**（可 17） | 主库；OpenGauss/人大金仓 可迁（ADR-0001） |
+| DB 迁移 | Flyway | **flyway-core + flyway-database-postgresql**（版本由 SB 3.5 BOM 管理） | 业务表 DDL 版本化（`db/migration/V1__…Vn__…`，启动自动执行，记于 `flyway_schema_history`）；Flowable 的 ACT_* 表由引擎自管，互不冲突 |
 | 缓存 | Redis | **7.x**（7.4） | 缓存/会话/限流。⚠️ SSPL；信创可换 **Valkey 8（BSD）** |
 | 分布式锁 | Redisson | **3.50.x**（`redisson-spring-boot-starter` + `redisson-spring-data-3x`） | 分布式锁/限流（集群级，ADR-0009） |
 | 消息队列 | **RabbitMQ** | **4.2.x**（开 STOMP 插件） | 异步消息 + WS STOMP relay（ADR-0009） |
@@ -45,10 +46,14 @@
 | 审计日志 | Spring AOP + 注解 | — | `@OperationLog` 切面异步入库 |
 | 构建/部署 | Maven / Docker Compose / K8s / GitHub Actions | — | 本地一键起 + 生产化 + CI/CD |
 
-> 三项加粗（RabbitMQ / XXL-JOB / Elasticsearch）为本轮新增的"刚需"基础设施（ADR-0005）。
+> **构建节奏（2026-07 修订）**：上表为**完整目标架构**；实现按**垂直切片**推进，基础设施**懒接线**——只在第一个需要它的切片落地。
+> **已接线**：Flyway / MyBatis-Plus / PostgreSQL / Redis / Redisson / Flowable / Spring Security + jjwt / Knife4j / Druid / Web·AOP·Validation·WebSocket·Actuator / Lombok。
+> **已设计、待接线**（`pom.xml` 中注释为"待接入"）：RabbitMQ / XXL-JOB / Elasticsearch / MinIO（ADR-0005、ADR-0006、ADR-0009）。
 
-### 未来可增强（未纳入本次）
-Flyway（DB 迁移）、Testcontainers（集成测试）、Knife4j（API 文档）、Druid（连接池监控）、MapStruct（Bean 映射）、Prometheus+Grafana（指标）、SkyWalking（链路追踪）、Sentinel（限流熔断）、Nacos（配置中心，若上微服务）。
+### 未来可增强（当前不引入）
+Testcontainers（集成测试）、MapStruct（Bean 映射）、Prometheus+Grafana（指标）、SkyWalking（链路追踪）、Sentinel（限流熔断）、Nacos（配置中心，若上微服务）。
+
+> Flyway / Knife4j / Druid 已在本期启用，见上表。
 
 ---
 

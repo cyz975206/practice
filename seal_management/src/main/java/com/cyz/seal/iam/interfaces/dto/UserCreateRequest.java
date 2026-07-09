@@ -5,6 +5,10 @@ import jakarta.validation.constraints.NotBlank;
 public record UserCreateRequest(
         @NotBlank String username,
         @NotBlank String password,
-        String nickname
+        @NotBlank String realName,
+        Long orgId,
+        String employeeNo,
+        String phone,
+        String position
 ) {
 }

@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
 
         String token = jwtUtil.generate(user.getId(), user.getUsername(), legalEntityId, roleCodes);
         return new LoginResponse(token,
-                new LoginResponse.UserInfo(user.getId(), user.getUsername(), user.getNickname(), legalEntityId, roleCodes));
+                new LoginResponse.UserInfo(user.getId(), user.getUsername(), user.getRealName(), legalEntityId, roleCodes));
     }
 
     private List<String> loadRoleCodes(Long userId) {

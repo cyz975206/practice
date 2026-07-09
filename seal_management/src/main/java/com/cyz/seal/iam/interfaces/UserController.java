@@ -6,6 +6,8 @@ import com.cyz.seal.iam.application.UserService;
 import com.cyz.seal.iam.domain.User;
 import com.cyz.seal.iam.interfaces.dto.AssignRolesRequest;
 import com.cyz.seal.iam.interfaces.dto.UserCreateRequest;
+import com.cyz.seal.iam.interfaces.dto.UserUpdateRequest;
+import com.cyz.seal.iam.interfaces.dto.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +41,17 @@ public class UserController {
     @GetMapping("/{id}")
     public Result<User> get(@PathVariable Long id) {
         return Result.ok(userService.getById(id));
+    }
+
+    @PutMapping("/{id}")
+    public Result<User> update(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest req) {
+        return Result.ok(userService.update(id, req));
+    }
+
+    @PutMapping("/{id}/password")
+    public Result<Void> resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequest req) {
+        userService.resetPassword(id, req.password());
+        return Result.ok();
     }
 
     @PutMapping("/{id}/roles")

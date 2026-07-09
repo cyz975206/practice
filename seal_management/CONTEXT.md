@@ -28,6 +28,16 @@ _Avoid_: 集团公司, 总公司, 平台 (平台 is the software; 集团 is the 
 A legally-registered company within the group — the group HQ (集团本部), a subsidiary (子公司), or a branch (分公司). Each legal entity owns its own seals, users, and approval configuration, and its data is isolated from other legal entities. This is the unit of multi-entity isolation in the system.
 _Avoid_: 租户 (an implementation alias for the isolation pattern — not a domain term; avoid in domain speech), 法人 (means "legal person" status, not the entity), 公司 (ambiguous), 客户
 
+### 组织与人员主数据 (Org & people master data)
+
+**部门 (Department)**:
+An organizational unit within a **法人实体**, arranged as a tree (each 部门 has one parent 部门, up to the entity root) and holding **人员**. When **统一平台** sync is enabled, 部门 is master data synced from it (read-only locally); otherwise it is maintained in the seal system.
+_Avoid_: 组织, 机构 (机构 is the collective for 法人实体/部门/岗位, not a single department)
+
+**人员 / 用户 (Person / User)**:
+In this system **人员** and **用户** are **one entity** — a person who logs in. The single record carries both the person's identity (name, 工号, **部门**, **职位**) and the login credentials, and belongs to one **法人实体**. **保管员**, **审批人**, and **申请人** are all this entity; it is both the domain subject and the authenticated principal, so domain relationships and audit all key off its single id. When **统一平台** sync is enabled, the identity attributes are master data synced from it.
+_Avoid_: 员工 / 账号 (acceptable synonyms); treating 人员 and 用户 as two separate things — they are unified here
+
 ### Physical seal usage
 
 **保管员 (Custodian)**:
@@ -224,6 +234,9 @@ _Avoid_: 数仓 (related but distinct)
 - Both kinds carry a **印章类型**
 - A **集团** contains many **法人实体**
 - Every **印章**, user, and configuration belongs to exactly one **法人实体**
+- A **部门** is a tree within a **法人实体** and holds **人员**; **岗位** (when present) sit under a **部门**
+- A **人员** belongs to one **法人实体** and one **部门**; **保管员**, **审批人**, and **申请人** are all **人员**
+- **人员** and **用户** are one entity; both domain relationships and audit key off its single id
 - A **实体印章** has one **保管员** at a time; custody is a per-seal assignment (not a role or **岗位**), and one person may hold custody of multiple seals
 - An approved **用印申请**, once fulfilled, produces a **使用记录**
 - In **借用** mode, fulfillment includes a handover and a return; in **代盖章** mode it does not
@@ -249,3 +262,4 @@ _Avoid_: 数仓 (related but distinct)
 
 - "印章" is used loosely to mean both physical and electronic kinds — resolved: 印章 is the shared abstraction; the two kinds are distinct concepts with separate lifecycles.
 - "多租户 / 租户" was initially read as public-SaaS multi-tenancy — resolved: in this system it means **多法人** (multiple legal entities within one enterprise **集团**). Canonical term is **法人实体**; 租户 survives only as an implementation-level alias for the isolation pattern.
+- "人员 / 用户" were used interchangeably — resolved: in this system they are **one entity** (a person who logs in, carrying both identity and credentials), not separate.
