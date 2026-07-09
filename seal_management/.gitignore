@@ -30,3 +30,6 @@ application-local.properties
 # 操作系统
 .DS_Store
 Thumbs.db
+
+# Claude Code（本机/个人覆盖，不提交；共享设置走 .claude/settings.json）
+.claude/settings.local.json
