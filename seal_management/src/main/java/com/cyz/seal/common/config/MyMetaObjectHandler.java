@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 /**
  * MyBatis-Plus 审计字段自动填充：create_time / update_time / create_by / update_by。
  *
- * <p>create_by / update_by 取当前用户 ID——TODO：IAM 接入后从 SecurityContext 取，
- * 骨架阶段先不填（null）。
+ * <p>create_by / update_by 取当前用户 ID——由 {@link CurrentUserContext} 提供
+ *（{@code JwtAuthenticationFilter} 在请求线程填充；异步线程无上下文时为 null）。
  */
 @Component
 public class MyMetaObjectHandler implements MetaObjectHandler {

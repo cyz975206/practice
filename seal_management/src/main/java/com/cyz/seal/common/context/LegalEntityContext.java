@@ -6,7 +6,7 @@ package com.cyz.seal.common.context;
  * <p>由认证过滤器从 JWT claim 解析后 {@link #set(Long)}，请求结束时 {@link #clear()}。
  * {@code TenantLineInnerInterceptor} 读取之自动注入 legal_entity_id 过滤条件。
  *
- * <p><b>异步传播（TODO）</b>：基于 ThreadLocal，仅覆盖请求线程；XXL-JOB / RabbitMQ 消费者 /
+ * <p><b>异步传播（已知缺口）</b>：基于 ThreadLocal，仅覆盖请求线程；XXL-JOB / RabbitMQ 消费者 /
  * Flowable async 等异步线程需显式 set/clear（或用 TaskDecorator 传播）。ADR-0009 分布式下需配套。
  */
 public final class LegalEntityContext {

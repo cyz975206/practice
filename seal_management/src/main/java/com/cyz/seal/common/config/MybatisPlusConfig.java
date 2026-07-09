@@ -19,9 +19,9 @@ import java.util.Set;
  * <p>多租户：每张业务表带 legal_entity_id，{@link TenantLineInnerInterceptor} 自动注入过滤条件；
  * Flowable 的 ACT_* 表与全局字典/菜单表在 {@link #GLOBAL_TABLES} / 前缀忽略。
  *
- * <p><b>无上下文 / group-scope 旁路（TODO）</b>：getTenantId 在非请求线程返回 null，
- * 此时拦截器跳过注入——适合定时任务/异步；集团审计员/管理员的跨实体查询需走显式"忽略租户"路径
- *（仅 GROUP 角色，单独审计，见 ADR-0002），待 IAM 接入后用线程级开关实现。
+ * <p><b>无上下文 / group-scope 旁路</b>：getTenantId 在非请求线程返回 null，
+ * 此时拦截器跳过注入——适合定时任务/异步；超级管理员/超级审计员的跨实体查询需走显式"忽略租户"路径
+ *（GROUP 角色，单独审计，见 ADR-0002），由线程级开关触发——<b>已设计、待实现</b>。
  */
 @Configuration
 public class MybatisPlusConfig {

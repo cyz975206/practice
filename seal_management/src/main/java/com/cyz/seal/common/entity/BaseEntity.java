@@ -23,7 +23,7 @@ public abstract class BaseEntity {
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
-    /** 创建人用户 ID（由 MetaObjectHandler 填充，依赖认证上下文，TODO：IAM 接入后补）。 */
+    /** 创建人用户 ID（由 MyMetaObjectHandler 从当前登录用户填充；异步线程无认证上下文时为 null）。 */
     @TableField(value = "create_by", fill = FieldFill.INSERT)
     private Long createBy;
 

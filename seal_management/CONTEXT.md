@@ -66,39 +66,28 @@ _Avoid_: 用印记录, 盖章记录
 
 ### Roles
 
-**申请人 (Applicant)**:
-Any user who submits a **用印申请**. The default role for all users; not a privileged role.
-_Avoid_: 普通用户 (acceptable synonym, but 申请人 is canonical in workflow context)
+系统固定 **4 个角色**，按作用域分两组（GROUP 跨实体 / ENTITY 本实体）：
 
-**审批人 (Approver)**:
-A user authorized to approve **用印申请** at some level — department, legal-entity, or group. How a specific approver is chosen for a given application is defined by the approval flow.
-_Avoid_: 审核人
+**超级管理员 (Super Admin, `super_admin`)** — GROUP 作用域:
+部署级最高管理员：**唯一可管理 法人实体**，并可跨实体管理用户/配置。**绕过多租户**（跨实体数据可见）。
+> 设计已定；多租户绕过（ignore-tenant 旁路）**待实现**——当前代码暂按 ENTITY 作用域处理（见 ADR-0002）。
+_Avoid_: **集团管理员**（已并入超级管理员——系统也可能服务小企业而非仅集团，故用通称"超级"），超管
 
-**集团审批人 (Group Approver)**:
-An **审批人** at the **集团** level, who approves major or escalated matters routed up from **法人实体**.
-_Avoid_: 集团审核人
+**超级审计员 (Super Auditor, `super_auditor`)** — GROUP 作用域:
+部署级只读审计：跨所有 **法人实体** 的查看、统计、审计，不能审批或改数据。**绕过多租户**。即原 **集团审计员**。
+> 设计已定；绕过**待实现**（推迟）。
+_Avoid_: **集团审计员**（改用 超级审计员 通称），集团监察员
 
-**集团审计员 (Group Auditor)**:
-A **集团**-level role with read-only access across all **法人实体** — for viewing, statistics, and audit. Cannot approve or modify seal data.
-_Avoid_: 集团监察员
+**系统管理员 (Entity Admin, `admin`)** — ENTITY 作用域:
+本 **法人实体** 的管理员：管本实体用户/角色/机构（及印章/保管员/审批配置）；看不到他实体数据。即 **法人实体管理员**。
+_Avoid_: 子公司管理员 / 分公司管理员（不论实体类型一律用此通称）
 
-**集团管理员 (Group Admin)**:
-The top administrator of a deployment: manages **法人实体**, group-level users, and group-wide configuration. Highest-privileged role.
-_Avoid_: 超级管理员, 系统管理员
+**普通用户 (Normal User, `user`)** — ENTITY 作用域:
+本 **法人实体** 普通用户，**默认角色**（API 新建用户自动授予）。即 **申请人**——任何提交 **用印申请** 的人。
+_Avoid_: 一般用户 / 成员（统一用 普通用户）
 
-**法人实体管理员 (Entity Admin)**:
-An administrator scoped to one **法人实体**: manages its users, departments, seals, custodians, and approval configuration. Cannot see other entities' data.
-_Avoid_: 子公司管理员, 分公司管理员 (use the canonical term regardless of entity type)
-
-### 系统角色 (Seeded system roles)
-
-实现口径：部署在默认法人实体（集团本部）seed 三个系统角色，均为 ENTITY 作用域——
-
-- **超级管理员 (super_admin)**：部署级最高账号，**唯一可管理 法人实体**（全局表）。ENTITY 作用域、**不绕过多租户**（跨实体业务数据的可见性随 GROUP 旁路推迟）。
-- **系统管理员 (admin)**：即 **法人实体管理员**——本实体的系统管理角色（管本实体的用户/角色/机构）。
-- **普通用户 (user)**：即 **申请人**——所有用户的默认角色，API 新建用户自动授予。
-
-其余角色（如 **审批人**）由管理员按需自建（自定义角色）；在"角色→资源权限表"落地前，自定义角色对系统鉴权是惰性的（不自动获得管理权限）。GROUP 作用域的 集团审计员/管理员/审批人 及其跨实体旁路推迟。
+**自定义角色（非系统角色）**:
+管理员按需自建。如 **审批人**（审批流中的候选审批者，由 **岗位 / 角色 / 规则** 解析）、**集团审批人**（跨实体上报审批，走审批流配置而非固定角色）。在"角色→资源权限表"落地前，自定义角色对系统鉴权是惰性的（不自动获得管理权限）。
 
 ### Approval
 
@@ -250,7 +239,7 @@ _Avoid_: 数仓 (related but distinct)
 - A **实体印章** has one **保管员** at a time; custody is a per-seal assignment (not a role or **岗位**), and one person may hold custody of multiple seals
 - An approved **用印申请**, once fulfilled, produces a **使用记录**
 - In **借用** mode, fulfillment includes a handover and a return; in **代盖章** mode it does not
-- **Role scope** is a property of the role, not of where a user resides: every role is **ENTITY**-scoped (confined to the holder's **法人实体**) or **GROUP**-scoped (cross-**法人实体**, bypassing row isolation per ADR-0002). Cross-entity power comes from holding a GROUP-scoped role (**集团管理员** / **集团审计员** / **集团审批人**); such people typically reside in the 集团本部 **法人实体**, but 集团本部 is otherwise an ordinary entity
+- **Role scope** is a property of the role: **超级管理员 / 超级审计员** are **GROUP-scoped** (cross-**法人实体**, bypass row isolation — *designed, bypass pending implementation*, per ADR-0002); **系统管理员 / 普通用户** are **ENTITY-scoped** (confined to the holder's **法人实体**). The two GROUP roles manage/audit across the whole deployment; the ENTITY roles see only their own entity
 - A **用印申请** is routed through an **审批流** of **审批节点**; each node resolves candidates (by **岗位**, role, user, or rule) and is satisfied per its **签批方式**. Candidate *count* (a **双岗** **岗位** yields two **当值**) and *sign count* (**签批方式**) are orthogonal — dual-control is 双岗 + 多签/会签
 - A **岗位** seat's active holder is its **当值** member, set by the **排班**; a **B角** acts when the primary is off-duty
 - A **实体印章** has a **印章状态**; **借出中** is a transient sub-state of **在用**
@@ -273,3 +262,4 @@ _Avoid_: 数仓 (related but distinct)
 - "印章" is used loosely to mean both physical and electronic kinds — resolved: 印章 is the shared abstraction; the two kinds are distinct concepts with separate lifecycles.
 - "多租户 / 租户" was initially read as public-SaaS multi-tenancy — resolved: in this system it means **多法人** (multiple legal entities within one enterprise **集团**). Canonical term is **法人实体**; 租户 survives only as an implementation-level alias for the isolation pattern.
 - "人员 / 用户" were used interchangeably — resolved: in this system they are **one entity** (a person who logs in, carrying both identity and credentials), not separate.
+- 角色模型 — resolved: 系统固定 **4 角色**——超级管理员 / 超级审计员（GROUP，绕过多租户，**绕过待实现**）+ 系统管理员 / 普通用户（ENTITY）。旧称映射：集团管理员→超级管理员、集团审计员→超级审计员、法人实体管理员→系统管理员、申请人→普通用户；审批人 / 集团审批人 改为自定义角色（非系统角色）。

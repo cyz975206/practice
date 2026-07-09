@@ -6,6 +6,38 @@
 
 ---
 
+## 实现状态 (Implementation status)
+
+> 2026-07 快照。✅ 已建/已接线 · 🔧 仅设计（ADR 已定）· ⏳ 待接线（懒加载，到对应切片再引入）
+
+**领域上下文**
+
+| 上下文 | 能力 | 状态 |
+|---|---|---|
+| common | Result/异常/多租户上下文/MyBatis-Plus 配置/健康检查 | ✅ |
+| org | 法人实体 CRUD；部门（机构树） | ✅ |
+| org | 岗位 / 排班 / B角 / 当值 | 🔧（随 approval） |
+| iam | 用户(=人员) / 角色 / JWT 认证 / @PreAuthorize 角色级鉴权 | ✅ |
+| iam | GROUP 旁路（超级管理员/超级审计员跨实体）· 权限/菜单资源表 | 🔧待实现 |
+| seal | 印章(实体/电子) / 印模 / 印章状态 / 印章编号（ADR-0008） | 🔧 |
+| usage | 用印申请 / 用印方式 / 履行 / 使用记录 | 🔧 |
+| approval | Flowable + 岗位/排班解析胶水（ADR-0003） | 🔧 |
+| integration | 一体机/印章柜/签章 ports + mock（ADR-0004） | 🔧 |
+| notification | 站内信/企微/钉钉/邮件 + MQ | 🔧 |
+| audit | @OperationLog AOP → MQ → PG+ES | 🔧 |
+| search | Elasticsearch 索引/查询 | 🔧 |
+| scheduler | XXL-JOB 借用超时/排班轮值/归档 | 🔧 |
+| storage | MinIO/local StoragePort（ADR-0006） | 🔧 |
+
+**基础设施**
+
+| 组件 | 状态 |
+|---|---|
+| PostgreSQL · Redis · Redisson · Flowable · Spring Security + jjwt · MyBatis-Plus · Flyway · Knife4j · Druid | ✅ 已接线 |
+| RabbitMQ · XXL-JOB · Elasticsearch · MinIO | ⏳ 待接线（按切片懒加载，ADR-0005/0006/0009） |
+
+---
+
 ## 1. 设计原则
 
 | 原则 | 说明 | 依据 |
@@ -130,7 +162,7 @@ com.cyz.seal
 
 - 每张业务表带 `legal_entity_id`；MyBatis-Plus `TenantLineInnerInterceptor` 自动注入过滤条件（ADR-0002）。
 - 请求进入时，`LegalEntityContext` 从 JWT/请求中解析当前法人实体并持有；多租户插件读取之。
-- **集团审计/统计**走显式"忽略租户"路径，仅授予 `集团审计员/集团管理员`，且单独审计。
+- **跨实体审计/统计**走显式"忽略租户"路径，由 `超级管理员 / 超级审计员`（GROUP 作用域）使用，**绕过待实现**，且每次访问单独审计。
 - Flowable 自有表为全局表：流程实例以 `businessKey` + 流程变量绑定 `legal_entity_id`，查询任务/历史时在应用层叠加法人过滤（ADR-0003）。
 - Elasticsearch 文档携带 `legal_entity_id`，按实体过滤；集团视角走特权查询。
 
@@ -199,7 +231,7 @@ flowchart TD
 
 - **索引**：`audit-log-*`、`usage-record-*`，文档带 `legal_entity_id` + 时间分片。
 - **同步**：审计/用印记录经 RabbitMQ 消费者写入 ES（非业务事务内双写，保证最终一致 + 幂等）。
-- **查询**：法人实体内全文检索（操作人/动作/印章/文档关键字）；集团审计员跨实体检索 + 聚合统计（按实体/类型/时间分布）。
+- **查询**：法人实体内全文检索（操作人/动作/印章/文档关键字）；超级审计员跨实体检索 + 聚合统计（按实体/类型/时间分布）。
 - ES 仅作**检索/统计读模型**，PG 仍为事实来源。
 
 ---
@@ -226,7 +258,7 @@ flowchart LR
 
 ## 12. 认证与权限
 
-- **Spring Security + JWT**：登录签发 JWT，请求过滤器校验；RBAC 基于 7 角色模型。
+- **Spring Security + JWT**：登录签发 JWT，请求过滤器校验；RBAC 基于 **4 角色模型**（超级管理员 / 超级审计员 = GROUP；系统管理员 / 普通用户 = ENTITY，详见 `CONTEXT.md`）。
 - **SSO-ready**：抽象 `AuthenticationProvider` / OAuth2 client，预留统一身份（CAS/OAuth2）对接入口。
 - **法人实体上下文**从 JWT claim 解析，注入多租户插件。
 - 权限粒度：角色 + 资源（菜单/按钮/接口）+ 数据范围（本实体 / 跨实体集团视角）。
@@ -237,7 +269,7 @@ flowchart LR
 
 - `@OperationLog` 注解 + AOP 切面，自动捕获：操作人 / 时间 / 动作 / 实体类型-ID / 改前改后 / IP / 结果。
 - 异步：切面投递到 RabbitMQ `audit.queue`，消费者写 PG（事实源）+ ES（检索）。
-- 独立审计表带 `legal_entity_id`；集团审计员可跨实体查询与导出。
+- 独立审计表带 `legal_entity_id`；超级审计员可跨实体查询与导出。
 
 ---
 

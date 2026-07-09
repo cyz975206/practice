@@ -19,7 +19,7 @@ spring:
     baseline-version: "0"         # baseline 在 0，保证 V1 仍被执行
   # Redisson 读 spring.data.redis 配置，提供分布式锁（集群级，ADR-0009），不再排除
 
-# Flowable：在 PG 上自动建表（首次启动建 ACT_*）；骨架阶段关闭 async executor（分布式下再开，ADR-0009）
+# Flowable：在 PG 上自动建表（首次启动建 ACT_*）；当前关闭 async executor（分布式部署时再开，ADR-0009）
 flowable:
   database-schema-update: true
   async-executor-activate: false
