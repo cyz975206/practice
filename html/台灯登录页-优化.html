@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灯下 · 登录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MorphSVGPlugin.min.js"
+            onload="window.__morphSVG=true"
+            onerror="console.log('MorphSVGPlugin unavailable')"></script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --shade-hue: 45;
+            --on: 0;
+            --bg: #0e1419;
+            --bg-warm: #111820;
+            --text: #c8ceda;
+            --text-dim: #4a5868;
+            --text-bright: #e4e8f2;
+            --card-bg: rgba(14, 20, 30, 0.88);
+            --input-bg: rgba(8, 14, 22, 0.9);
+            --input-border: rgba(70, 88, 115, 0.2);
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Manrope', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ── Background layers ── */
+        #ambientOverlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 0.9s ease;
+        }
+
+        /* Subtle warm gradient beneath everything */
+        .bg-base {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at 40% 55%, rgba(22, 30, 42, 1) 0%, var(--bg) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Vignette */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Grain */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.035;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Desk surface */
+        .desk-surface {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 130px;
+            background: linear-gradient(to bottom, transparent 0%, rgba(10, 14, 20, 0.5) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Floating dust particles ── */
+        .dust {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            will-change: transform;
+            animation: dustFloat linear infinite;
+        }
+        @keyframes dustFloat {
+            0%   { transform: translate(0, 0); opacity: 0; }
+            8%   { opacity: 0.18; }
+            25%  { transform: translate(12px, -25vh); }
+            50%  { transform: translate(-8px, -50vh); }
+            75%  { transform: translate(18px, -75vh); }
+            92%  { opacity: 0.18; }
+            100% { transform: translate(4px, -100vh); opacity: 0; }
+        }
+
+        /* ── Layout ── */
+        .scene {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+            padding: 40px 24px;
+            flex-wrap: wrap;
+            z-index: 1;
+            position: relative;
+        }
+
+        /* ── Lamp ── */
+        .lamp-section {
+            position: relative;
+            width: 280px;
+            flex-shrink: 0;
+        }
+
+        #lamp {
+            width: 100%;
+            height: auto;
+            overflow: visible;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4));
+        }
+
+        .lamp-hint {
+            text-align: center;
+            margin-top: 14px;
+            font-size: 12px;
+            font-weight: 300;
+            color: var(--text-dim);
+            letter-spacing: 2.5px;
+            opacity: 1;
+            transition: opacity 0.5s;
+            animation: hintBounce 2.5s ease-in-out infinite;
+        }
+        .lamp-hint.hidden { opacity: 0; animation: none; }
+
+        @keyframes hintBounce {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(5px); }
+        }
+
+        /* Cord ball invite pulse */
+        #cordGroup {
+            cursor: grab;
+            animation: cordPulse 2.8s ease-in-out infinite;
+        }
+        #cordGroup:active { cursor: grabbing; }
+
+        @keyframes cordPulse {
+            0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+            50%      { filter: drop-shadow(0 0 8px rgba(140, 150, 175, 0.25)); }
+        }
+
+        /* ── Form ── */
+        .form-section { position: relative; }
+
+        #loginForm {
+            opacity: 0;
+            transform: scale(0.82);
+            width: 380px;
+            padding: 44px 40px 36px;
+            background: var(--card-bg);
+            border-radius: 22px;
+            border: 1px solid rgba(255,255,255,0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            pointer-events: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative top bar */
+        #loginForm::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            border-radius: 0 0 3px 3px;
+            background: hsla(var(--shade-hue), 60%, 50%, 0);
+            transition: background 0.6s;
+        }
+
+        #loginForm.lit {
+            pointer-events: auto;
+            border-color: hsla(var(--shade-hue), 70%, 50%, 0.2);
+            box-shadow:
+                0 0 40px hsla(var(--shade-hue), 80%, 55%, 0.08),
+                0 0 90px hsla(var(--shade-hue), 65%, 45%, 0.04),
+                inset 0 1px 0 rgba(255,255,255,0.03);
+            animation: formPulse 4s ease-in-out infinite;
+        }
+        #loginForm.lit::after {
+            background: hsla(var(--shade-hue), 60%, 55%, 0.5);
+        }
+
+        @keyframes formPulse {
+            0%, 100% { box-shadow: 0 0 40px hsla(var(--shade-hue),80%,55%,0.08), 0 0 90px hsla(var(--shade-hue),65%,45%,0.04), inset 0 1px 0 rgba(255,255,255,0.03); }
+            50%      { box-shadow: 0 0 55px hsla(var(--shade-hue),80%,55%,0.12), 0 0 110px hsla(var(--shade-hue),65%,45%,0.06), inset 0 1px 0 rgba(255,255,255,0.03); }
+        }
+
+        #loginForm h2 {
+            font-family: 'Fraunces', 'PingFang SC', 'Microsoft YaHei', serif;
+            font-size: 28px;
+            font-weight: 300;
+            font-optical-sizing: auto;
+            letter-spacing: 5px;
+            margin-bottom: 34px;
+            color: var(--text-bright);
+        }
+
+        .field {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .field label {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 500;
+            color: var(--text-dim);
+            margin-bottom: 7px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 13px 16px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 11px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14.5px;
+            outline: none;
+            transition: border-color 0.4s, box-shadow 0.4s;
+        }
+        .field input::placeholder { color: rgba(80, 96, 120, 0.5); font-weight: 300; }
+
+        .field input:focus {
+            border-color: hsla(var(--shade-hue), 80%, 58%, 0.6);
+            box-shadow:
+                0 0 0 3px hsla(var(--shade-hue), 80%, 55%, 0.08),
+                0 0 28px hsla(var(--shade-hue), 70%, 50%, 0.06);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 28px;
+            background: hsla(var(--shade-hue), 60%, 48%, 0.7);
+            border: none;
+            border-radius: 11px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 2.5px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.4s, transform 0.15s, box-shadow 0.4s;
+        }
+        .login-btn:hover {
+            background: hsla(var(--shade-hue), 65%, 55%, 0.88);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 28px hsla(var(--shade-hue), 60%, 45%, 0.2);
+        }
+        .login-btn:active { transform: translateY(0); }
+
+        /* Button shimmer */
+        .login-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -120%;
+            width: 60%;
+            height: 200%;
+            background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
+            transform: skewX(-18deg);
+            transition: left 0.6s ease;
+        }
+        .login-btn:hover::after {
+            left: 120%;
+        }
+
+        .forgot-link {
+            display: block;
+            text-align: right;
+            margin-top: 16px;
+            font-size: 12.5px;
+            font-weight: 300;
+            color: hsla(var(--shade-hue), 50%, 55%, 0.5);
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+        .forgot-link:hover { color: hsla(var(--shade-hue), 60%, 65%, 0.8); }
+
+        /* ── Footer ── */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: rgba(70, 82, 98, 0.5);
+            letter-spacing: 0.8px;
+            z-index: 1;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 820px) {
+            .scene { flex-direction: column; gap: 20px; }
+            .lamp-section { width: 200px; }
+            #loginForm { width: 92vw; max-width: 380px; padding: 30px 26px 26px; }
+            #loginForm h2 { font-size: 24px; letter-spacing: 4px; }
+        }
+
+        @media (max-width: 400px) {
+            #loginForm { padding: 24px 18px 20px; border-radius: 18px; }
+        }
+
+        /* ── Prefers reduced motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            .dust, .lamp-hint, #cordGroup, #loginForm.lit { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-base"></div>
+<div id="ambientOverlay"></div>
+<div class="desk-surface"></div>
+
+<main class="scene">
+    <!-- ── Lamp ── -->
+    <div class="lamp-section">
+        <svg id="lamp" viewBox="0 0 300 460" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- Primary glow -->
+                <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+                    <stop id="gs1" offset="0%"  stop-color="#f0c040" stop-opacity="0.4"/>
+                    <stop id="gs2" offset="100%" stop-color="#f0c040" stop-opacity="0"/>
+                </radialGradient>
+                <!-- Secondary bloom (larger, softer) -->
+                <radialGradient id="bloomGrad" cx="50%" cy="50%" r="50%">
+                    <stop id="bs1" offset="0%"  stop-color="#f0c040" stop-opacity="0.12"/>
+                    <stop id="bs2" offset="100%" stop-color="#f0c040" stop-opacity="0"/>
+                </radialGradient>
+                <!-- Light cone -->
+                <linearGradient id="coneGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop id="cs1" offset="0%"   stop-color="#f0c040" stop-opacity="0.18"/>
+                    <stop id="cs2" offset="100%" stop-color="#f0c040" stop-opacity="0"/>
+                </linearGradient>
+                <!-- Metal -->
+                <linearGradient id="metalG" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"   stop-color="#363d4e"/>
+                    <stop offset="45%"  stop-color="#58607a"/>
+                    <stop offset="100%" stop-color="#363d4e"/>
+                </linearGradient>
+                <!-- Shade -->
+                <linearGradient id="shadeG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stop-color="#535c76"/>
+                    <stop offset="100%" stop-color="#3a4258"/>
+                </linearGradient>
+                <!-- Shade inner glow (when lamp on) -->
+                <linearGradient id="innerGlowG" x1="0" y1="0" x2="0" y2="1">
+                    <stop id="ig1" offset="0%"  stop-color="#f0c040" stop-opacity="0.18"/>
+                    <stop id="ig2" offset="60%" stop-color="#f0c040" stop-opacity="0.04"/>
+                    <stop id="ig3" offset="100%" stop-color="#f0c040" stop-opacity="0"/>
+                </linearGradient>
+            </defs>
+
+            <!-- Light bloom (largest, softest) -->
+            <circle id="lightBloom" cx="150" cy="210" r="200" fill="url(#bloomGrad)" opacity="0"/>
+
+            <!-- Primary glow -->
+            <circle id="lightGlow" cx="150" cy="210" r="130" fill="url(#glowGrad)" opacity="0"/>
+
+            <!-- Light cone (curved edges) -->
+            <path id="lightCone" d="M120,208 Q80,320 42,430 L258,430 Q220,320 180,208 Z" fill="url(#coneGrad)" opacity="0"/>
+
+            <!-- ── Lamp structure ── -->
+
+            <!-- Base shadow -->
+            <ellipse cx="150" cy="440" rx="62" ry="8" fill="rgba(0,0,0,0.25)"/>
+
+            <!-- Base plate -->
+            <ellipse cx="150" cy="434" rx="55" ry="8" fill="#1a1e2a"/>
+            <rect x="119" y="424" width="62" height="12" rx="4" fill="url(#metalG)"/>
+            <!-- Base screws -->
+            <circle cx="126" cy="430" r="2" fill="#2e3444" stroke="#48506a" stroke-width="0.5"/>
+            <circle cx="174" cy="430" r="2" fill="#2e3444" stroke="#48506a" stroke-width="0.5"/>
+
+            <!-- Base column -->
+            <rect x="140" y="400" width="20" height="28" rx="3" fill="#3c4358"/>
+            <rect x="143" y="400" width="4" height="28" fill="#4a5168" opacity="0.5"/>
+
+            <!-- Lower arm -->
+            <line x1="150" y1="406" x2="128" y2="306" stroke="#4a5068" stroke-width="9" stroke-linecap="round"/>
+            <!-- Arm highlight -->
+            <line x1="150" y1="406" x2="128" y2="306" stroke="#5c6480" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+
+            <!-- Elbow joint -->
+            <circle cx="128" cy="306" r="11" fill="#4a5068"/>
+            <circle cx="128" cy="306" r="5.5" fill="#5c6480"/>
+            <circle cx="127" cy="304" r="2" fill="#6a7290" opacity="0.4"/>
+
+            <!-- Upper arm -->
+            <line x1="128" y1="306" x2="150" y2="202" stroke="#4a5068" stroke-width="9" stroke-linecap="round"/>
+            <line x1="128" y1="306" x2="150" y2="202" stroke="#5c6480" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+
+            <!-- Shade joint -->
+            <circle cx="150" cy="202" r="7" fill="#4a5068"/>
+            <circle cx="150" cy="202" r="3" fill="#5c6480"/>
+
+            <!-- Shade body -->
+            <path d="M92,208 L108,156 Q150,142 192,156 L208,208 Z" fill="url(#shadeG)" stroke="#5c6480" stroke-width="0.5"/>
+            <!-- Shade top edge highlight -->
+            <path d="M108,156 Q150,142 192,156" stroke="#6a7290" stroke-width="1" fill="none" opacity="0.4"/>
+            <!-- Shade side highlight -->
+            <path d="M92,208 L108,156" stroke="#6a7290" stroke-width="0.5" opacity="0.25"/>
+
+            <!-- Shade rim -->
+            <rect x="87" y="203" width="126" height="8" rx="4" fill="#58607a"/>
+            <rect x="87" y="203" width="126" height="3" rx="1.5" fill="#6a7290" opacity="0.3"/>
+
+            <!-- Shade inner glow overlay (rendered BEFORE face so it doesn't cover it) -->
+            <path id="shadeGlow" d="M92,208 L108,156 Q150,142 192,156 L208,208 Z" fill="url(#innerGlowG)" opacity="0" style="pointer-events:none"/>
+
+            <!-- ── Character features ── -->
+            <g id="lampEyes">
+                <!-- Left eye -->
+                <ellipse cx="128" cy="182" rx="11" ry="13" fill="#dce0ea"/>
+                <circle cx="128" cy="179" r="6" fill="#1a1d30"/>
+                <circle cx="131" cy="176" r="2" fill="#fff" opacity="0.85"/>
+                <circle cx="126" cy="177" r="0.9" fill="#fff" opacity="0.45"/>
+                <!-- Right eye -->
+                <ellipse cx="172" cy="182" rx="11" ry="13" fill="#dce0ea"/>
+                <circle cx="172" cy="179" r="6" fill="#1a1d30"/>
+                <circle cx="175" cy="176" r="2" fill="#fff" opacity="0.85"/>
+                <circle cx="170" cy="177" r="0.9" fill="#fff" opacity="0.45"/>
+                <!-- Mouth (smile at 0°, frown when rotated 180°) -->
+                <path d="M143,196 Q150,190 157,196" stroke="#2a2e40" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+                <!-- Cheeks -->
+                <circle class="cheek" cx="116" cy="192" r="5.5" fill="#e8a0a0" opacity="0"/>
+                <circle class="cheek" cx="184" cy="192" r="5.5" fill="#e8a0a0" opacity="0"/>
+            </g>
+
+            <!-- Bulb -->
+            <ellipse id="bulb" cx="150" cy="212" rx="9" ry="12" fill="#262c3a"/>
+            <!-- Bulb screw base -->
+            <rect x="145" y="218" width="10" height="5" rx="1.5" fill="#3a3e4e"/>
+
+            <!-- ── Pull cord ── -->
+            <!-- Cord attachment point on shade rim -->
+            <circle cx="190" cy="207" r="3" fill="#5c6480" stroke="#4a5068" stroke-width="1"/>
+
+            <path id="cordPath" d="M192,207 Q192,265 192,328" stroke="#606880" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+            <!-- Cord ball (draggable group) -->
+            <g id="cordGroup">
+                <circle cx="192" cy="328" r="11" fill="#7c8298" stroke="#606880" stroke-width="2"/>
+                <circle cx="192" cy="328" r="8" fill="none" stroke="#8a90a8" stroke-width="0.5" opacity="0.3"/>
+                <circle cx="189" cy="325" r="3.5" fill="#969cb2" opacity="0.35"/>
+            </g>
+        </svg>
+        <p class="lamp-hint" id="lampHint">↓ 拖拽拉绳开灯</p>
+    </div>
+
+    <!-- ── Form ── -->
+    <div class="form-section">
+        <form id="loginForm" autocomplete="off">
+            <h2>欢迎回来</h2>
+            <div class="field">
+                <label for="account">账号</label>
+                <input type="text" id="account" placeholder="请输入账号" autocomplete="off"/>
+            </div>
+            <div class="field">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="请输入密码" autocomplete="off"/>
+            </div>
+            <button type="submit" class="login-btn">登 录</button>
+            <a href="javascript:void(0)" class="forgot-link">忘记密码？</a>
+        </form>
+    </div>
+</main>
+
+<footer>
+    <time id="footerDate"></time>
+    <span>Design by Lamplight</span>
+</footer>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── DOM ── */
+    var lampEyes   = document.getElementById('lampEyes');
+    var lightGlow  = document.getElementById('lightGlow');
+    var lightBloom = document.getElementById('lightBloom');
+    var lightCone  = document.getElementById('lightCone');
+    var shadeGlow  = document.getElementById('shadeGlow');
+    var bulb       = document.getElementById('bulb');
+    var cordPath   = document.getElementById('cordPath');
+    var cordGroup  = document.getElementById('cordGroup');
+    var loginForm  = document.getElementById('loginForm');
+    var lampHint   = document.getElementById('lampHint');
+    var ambient    = document.getElementById('ambientOverlay');
+    var footerDate = document.getElementById('footerDate');
+    var cheeks     = document.querySelectorAll('.cheek');
+
+    /* ── Footer date ── */
+    var d = new Date();
+    footerDate.textContent = d.getFullYear() + '\u5E74' + (d.getMonth() + 1) + '\u6708' + d.getDate() + '\u65E5';
+
+    /* ── Floating dust ── */
+    (function spawnDust() {
+        for (var i = 0; i < 18; i++) {
+            var p = document.createElement('div');
+            p.className = 'dust';
+            p.style.left = (Math.random() * 100) + '%';
+            p.style.top  = (Math.random() * 100) + '%';
+            var size = 1 + Math.random() * 2;
+            p.style.width  = size + 'px';
+            p.style.height = size + 'px';
+            p.style.background = 'rgba(180, 195, 220, ' + (0.08 + Math.random() * 0.15) + ')';
+            p.style.animationDuration = (18 + Math.random() * 28) + 's';
+            p.style.animationDelay    = (Math.random() * 25) + 's';
+            document.body.appendChild(p);
+        }
+    })();
+
+    /* ── State ── */
+    var isOn       = false;
+    var willToggle = false;
+    var audioCtx;
+
+    /* ── GSAP plugins ── */
+    var hasMorphSVG = !!window.__morphSVG;
+    if (hasMorphSVG) gsap.registerPlugin(MorphSVGPlugin);
+    gsap.registerPlugin(Draggable);
+
+    /* Eyes looking down (off) */
+    gsap.set(lampEyes, { svgOrigin: '150 182', rotation: 180 });
+
+    /* ── Page load stagger ── */
+    (function intro() {
+        gsap.set('.scene', { opacity: 0 });
+        gsap.set('footer', { opacity: 0 });
+        gsap.to('.scene',  { opacity: 1, duration: 0.9, delay: 0.15, ease: 'power2.out' });
+        gsap.to('footer',  { opacity: 1, duration: 0.6, delay: 0.7 });
+        /* Only animate direct SVG children to avoid transform conflicts on nested face features */
+        var lampParts = document.querySelectorAll(
+            '#lamp > circle, #lamp > ellipse, #lamp > line, #lamp > path, #lamp > rect, #lamp > g'
+        );
+        gsap.from(lampParts, {
+            opacity: 0, y: 12, stagger: 0.025,
+            duration: 0.45, ease: 'power2.out', delay: 0.3
+        });
+    })();
+
+    /* ── Cord constants ── */
+    var CORD_Y0 = 207;
+    var CORD_Y1 = 328;
+    var CORD_X  = 192;
+
+    /* MorphSVG wave shapes */
+    var cordNormal = 'M192,207 Q192,267 192,328';
+    var cordWaveA  = 'M192,207 Q218,234 168,270 Q218,298 192,328';
+    var cordWaveB  = 'M192,207 Q166,234 216,270 Q166,298 192,328';
+
+    /* ── Audio: two-tone mechanical click ── */
+    function playClick() {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            var t = audioCtx.currentTime;
+
+            // High click
+            var o1 = audioCtx.createOscillator();
+            var g1 = audioCtx.createGain();
+            o1.connect(g1); g1.connect(audioCtx.destination);
+            o1.type = 'square';
+            o1.frequency.setValueAtTime(1800, t);
+            o1.frequency.exponentialRampToValueAtTime(350, t + 0.03);
+            g1.gain.setValueAtTime(0.11, t);
+            g1.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+            o1.start(t); o1.stop(t + 0.06);
+
+            // Low thock
+            var o2 = audioCtx.createOscillator();
+            var g2 = audioCtx.createGain();
+            o2.connect(g2); g2.connect(audioCtx.destination);
+            o2.type = 'sine';
+            o2.frequency.setValueAtTime(500, t + 0.025);
+            o2.frequency.exponentialRampToValueAtTime(120, t + 0.08);
+            g2.gain.setValueAtTime(0.07, t + 0.025);
+            g2.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+            o2.start(t + 0.025); o2.stop(t + 0.1);
+        } catch (_) {}
+    }
+
+    /* ── Update colors ── */
+    function updateColors(hue) {
+        document.documentElement.style.setProperty('--shade-hue', hue);
+        var c = 'hsl(' + hue + ',80%,65%)';
+        var cl = 'hsl(' + hue + ',70%,50%)';
+        document.getElementById('gs1').setAttribute('stop-color', c);
+        document.getElementById('gs2').setAttribute('stop-color', c);
+        document.getElementById('bs1').setAttribute('stop-color', c);
+        document.getElementById('bs2').setAttribute('stop-color', c);
+        document.getElementById('cs1').setAttribute('stop-color', c);
+        document.getElementById('cs2').setAttribute('stop-color', c);
+        document.getElementById('ig1').setAttribute('stop-color', cl);
+        document.getElementById('ig2').setAttribute('stop-color', cl);
+        document.getElementById('ig3').setAttribute('stop-color', cl);
+    }
+
+    /* ── Cord path helper ── */
+    function setPath(ballY, wave) {
+        wave = wave || 0;
+        var midY = (CORD_Y0 + ballY) / 2;
+        cordPath.setAttribute('d',
+            'M' + CORD_X + ',' + CORD_Y0 +
+            ' Q' + (CORD_X + wave) + ',' + midY +
+            ' ' + CORD_X + ',' + ballY
+        );
+    }
+
+    /* ── Stagger form children ── */
+    function revealFormChildren() {
+        var items = ['#loginForm h2', '.field:first-child', '.field:last-child', '.login-btn', '.forgot-link'];
+        items.forEach(function (sel, i) {
+            gsap.from(sel, {
+                opacity: 0, y: 14,
+                duration: 0.38,
+                delay: 0.32 + i * 0.07,
+                ease: 'power2.out',
+                clearProps: 'opacity,y'
+            });
+        });
+    }
+
+    /* ── Toggle lamp ── */
+    function toggleLamp() {
+        isOn = !isOn;
+        var hue = isOn ? Math.floor(Math.random() * 360) : 45;
+        updateColors(hue);
+        document.documentElement.style.setProperty('--on', isOn ? '1' : '0');
+
+        var bulbColor = isOn ? 'hsl(' + hue + ',80%,65%)' : '#262c3a';
+
+        if (isOn) {
+            ambient.style.background =
+                'radial-gradient(ellipse at 35% 50%, hsla(' + hue + ',50%,20%,0.16) 0%, transparent 60%)';
+            ambient.style.opacity = '1';
+        } else {
+            ambient.style.opacity = '0';
+        }
+
+        // Kill any running tweens to prevent conflicts
+        gsap.killTweensOf([lightGlow, lightBloom, lightCone, shadeGlow, bulb, lampEyes, loginForm, lampHint]);
+        gsap.killTweensOf(cheeks);
+
+        var tl = gsap.timeline();
+
+        if (isOn) {
+            tl.to(lightBloom, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0)
+              .to(lightGlow,   { opacity: 1, duration: 0.7, ease: 'power2.out' }, 0.05)
+              .to(lightCone,   { opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.05)
+              .to(shadeGlow,   { opacity: 1, duration: 0.6 }, 0.1)
+              .to(bulb,        { attr: { fill: bulbColor }, duration: 0.3 }, 0)
+              .to(lampEyes,    { svgOrigin: '150 182', rotation: 0, duration: 0.55, ease: 'back.out(1.7)' }, 0)
+              .to(cheeks,      { opacity: 0.22, duration: 0.5, stagger: 0.05 }, 0.3)
+              .to(loginForm,   { opacity: 1, scale: 1, duration: 0.65, ease: 'back.out(1.7)' }, 0.15)
+              .to(lampHint,    { opacity: 0, duration: 0.25 }, 0);
+            loginForm.classList.add('lit');
+            revealFormChildren();
+        } else {
+            tl.to(loginForm,   { opacity: 0, scale: 0.82, duration: 0.3, ease: 'power2.in' }, 0)
+              .to(cheeks,      { opacity: 0, duration: 0.25 }, 0)
+              .to(shadeGlow,   { opacity: 0, duration: 0.3 }, 0.05)
+              .to(lightBloom,  { opacity: 0, duration: 0.5 }, 0.05)
+              .to(lightGlow,   { opacity: 0, duration: 0.4 }, 0.05)
+              .to(lightCone,   { opacity: 0, duration: 0.45 }, 0.05)
+              .to(bulb,        { attr: { fill: bulbColor }, duration: 0.25 }, 0)
+              .to(lampEyes,    { svgOrigin: '150 182', rotation: 180, duration: 0.5, ease: 'power2.inOut' }, 0.05)
+              .to(lampHint,    { opacity: 1, duration: 0.3 }, 0.35);
+            loginForm.classList.remove('lit');
+        }
+    }
+
+    /* ── Bounce cord back ── */
+    function bounceCordBack() {
+        dragRef[0].disable();
+
+        gsap.to(cordGroup, {
+            y: 0,
+            duration: 0.85,
+            ease: 'elastic.out(1, 0.32)',
+            onUpdate: function () {
+                var offset  = gsap.getProperty(cordGroup, 'y');
+                var visualY = CORD_Y1 + offset;
+                var p = this.progress();
+                var wave = Math.sin(p * Math.PI * 6) * (1 - p) * 20;
+                setPath(visualY, wave);
+            },
+            onComplete: function () {
+                setPath(CORD_Y1, 0);
+                if (hasMorphSVG) {
+                    gsap.timeline({
+                        onComplete: function () {
+                            gsap.set(cordPath, { attr: { d: cordNormal } });
+                            dragRef[0].enable();
+                        }
+                    })
+                    .to(cordPath, { morphSVG: cordWaveA, duration: 0.09 })
+                    .to(cordPath, { morphSVG: cordWaveB, duration: 0.09 })
+                    .to(cordPath, { morphSVG: cordWaveA, duration: 0.07 })
+                    .to(cordPath, { morphSVG: cordNormal, duration: 0.2, ease: 'power2.out' });
+                } else {
+                    dragRef[0].enable();
+                }
+            }
+        });
+    }
+
+    /* ── Draggable ── */
+    var dragRef = Draggable.create(cordGroup, {
+        type: 'y',
+        bounds: { minY: 0, maxY: 120 },
+        onDragStart: function () { willToggle = false; },
+        onDrag: function () {
+            var offset = this.y || 0;
+            setPath(CORD_Y1 + offset, 0);
+            if (offset > 50) willToggle = true;
+        },
+        onDragEnd: function () {
+            playClick();
+            if (willToggle) toggleLamp();
+            bounceCordBack();
+        }
+    });
+
+    /* ── Init ── */
+    updateColors(45);
+    loginForm.addEventListener('submit', function (e) { e.preventDefault(); });
+
+})();
+</script>
+</body>
+</html>
